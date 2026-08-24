@@ -9,8 +9,11 @@
 4. Worth dimensions are `open` or `measured`. Open values remain incomparable.
 5. No total score or best candidate exists without an explicitly versioned scalar policy.
 6. Predictions and predicted cost are frozen before execution.
-7. Proposer and settlement authority are distinct. An `agent` cannot be settlement authority.
-8. Proved, refuted and wall outcomes all create durable settlement receipts.
+7. Proposer and settlement authority are distinct. Independent settlement authorities must match
+   an accepted identity exactly; all unlisted, case-variant and whitespace-variant identities fail closed.
+8. Proved, refuted and wall outcomes create durable settlement receipts. Proved and refuted
+   independent outcomes require one or more digest-verified, present receipts; open independent
+   outcomes may omit receipts.
 9. Infrastructure failure is operational evidence and never a mathematical negative result.
 10. Claims that a connection reduces research cost require replay or prospective controls.
 11. Temporal replay forbids future artifact references, future theorem names and future dependency

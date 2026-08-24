@@ -143,7 +143,7 @@ internal static partial class Cli
                 intake.StateRef,
                 proposalRef,
                 candidate.Outcome,
-                "local-dev-independent-settlement-fixture",
+                SettlementAuthorities.LocalDevMockIndependentVerifier,
                 new[] { evidenceRef },
                 "independent-local-dev-mock-v1",
                 candidate.SettlementFinding,

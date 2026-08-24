@@ -14,7 +14,7 @@ public sealed class ArtifactStore
     public string Put<T>(T artifact)
     {
         ContractValidator.Validate(artifact!);
-        ValidateAttemptBoundary(artifact);
+        ValidateStoreBoundary(artifact);
         var bytes = CanonicalJson.Serialize(artifact);
         var hex = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         var reference = $"sha256:{hex}";
@@ -57,7 +57,7 @@ public sealed class ArtifactStore
         }
         var value = CanonicalJson.DeserializeCanonical<T>(bytes);
         ContractValidator.Validate(value!);
-        ValidateAttemptBoundary(value);
+        ValidateStoreBoundary(value);
         return value;
     }
 
@@ -68,8 +68,36 @@ public sealed class ArtifactStore
         return Path.Combine(_root, "sha256", hex[..2], hex + ".json");
     }
 
-    private void ValidateAttemptBoundary<T>(T artifact)
+    public IReadOnlyList<(string Ref, T Value)> FindBySchema<T>(string schema)
     {
+        var results = new List<(string Ref, T Value)>();
+        var storePath = Path.Combine(_root, "sha256");
+        if (!Directory.Exists(storePath)) return results;
+
+        foreach (var path in Directory.EnumerateFiles(storePath, "*.json", SearchOption.AllDirectories))
+        {
+            using var document = JsonDocument.Parse(File.ReadAllBytes(path));
+            if (!document.RootElement.TryGetProperty("schema", out var schemaElement)
+                || !string.Equals(schemaElement.GetString(), schema, StringComparison.Ordinal)) continue;
+
+            var hex = Path.GetFileNameWithoutExtension(path);
+            var reference = $"sha256:{hex}";
+            if (!string.Equals(path, PathFor(reference), StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Artifact {reference} is stored at a non-canonical path.");
+            }
+            results.Add((reference, Get<T>(reference)));
+        }
+        return results.OrderBy(static item => item.Ref, StringComparer.Ordinal).ToArray();
+    }
+
+    private void ValidateStoreBoundary<T>(T artifact)
+    {
+        if (artifact is IndependentSettlement independentSettlement)
+        {
+            ContractValidator.Validate(independentSettlement, ArtifactExistsWithValidDigest);
+        }
+
         if (artifact is not ResearchAttempt attempt) return;
 
         var state = Get<IntuitionState>(attempt.StateRef);
@@ -86,5 +114,14 @@ public sealed class ArtifactStore
         {
             throw new InvalidOperationException("Attempt valuation was not selected for execution.");
         }
+    }
+
+    private bool ArtifactExistsWithValidDigest(string reference)
+    {
+        var path = PathFor(reference);
+        if (!File.Exists(path)) return false;
+        var bytes = File.ReadAllBytes(path);
+        var actual = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        return string.Equals(reference[7..], actual, StringComparison.Ordinal);
     }
 }

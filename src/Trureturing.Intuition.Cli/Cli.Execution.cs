@@ -242,6 +242,41 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
         return 0;
     }
 
+    private static int CalibrateIndependent(ArtifactStore store, string independentSettlementRef)
+    {
+        var triggeringSettlement = store.Get<IndependentSettlement>(independentSettlementRef);
+        var valuationPairs = store.FindBySchema<IntuitionValuation>(Schemas.Valuation);
+        var matchingValuationRefs = valuationPairs
+            .Where(item => item.Value.ProposalRef == triggeringSettlement.ProposalRef)
+            .Select(static item => item.Ref)
+            .ToHashSet(StringComparer.Ordinal);
+        var matchingSets = store.FindBySchema<IntuitionValuationSet>(Schemas.ValuationSet)
+            .Where(item => item.Value.StateRef == triggeringSettlement.StateRef
+                && item.Value.ValuationRefs.Any(matchingValuationRefs.Contains))
+            .ToArray();
+        if (matchingSets.Length != 1)
+        {
+            throw new InvalidOperationException("Independent settlement must resolve to exactly one valuation set for calibration history.");
+        }
+
+        var valuationSet = matchingSets[0];
+        var valuationRefs = valuationSet.Value.ValuationRefs.ToHashSet(StringComparer.Ordinal);
+        var valuations = valuationPairs.Where(item => valuationRefs.Contains(item.Ref)).ToArray();
+        var proposalRefs = valuations.Select(static item => item.Value.ProposalRef).ToHashSet(StringComparer.Ordinal);
+        var settlements = store.FindBySchema<IndependentSettlement>(Schemas.IndependentSettlement)
+            .Where(item => item.Value.StateRef == triggeringSettlement.StateRef && proposalRefs.Contains(item.Value.ProposalRef))
+            .ToArray();
+        var report = Calibration.BuildIndependent(valuationSet.Ref, valuations, settlements);
+        var reference = store.Put(report);
+        WriteResult(new Dictionary<string, object?>
+        {
+            ["calibration_ref"] = reference,
+            ["independent_settlement_refs"] = report.SettlementRefs,
+            ["valuation_set_ref"] = valuationSet.Ref
+        });
+        return 0;
+    }
+
     private static int Verify(ArtifactStore store, string kind, string reference)
     {
         _ = kind switch

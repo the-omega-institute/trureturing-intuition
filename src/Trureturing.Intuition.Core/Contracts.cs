@@ -41,6 +41,12 @@ public static class Schemas
     public const string Calibration = "calibration-report.v1";
 }
 
+public static class SettlementAuthorities
+{
+    public const string IndependentVerifier = "Trureturing.IndependentVerifier";
+    public const string LocalDevMockIndependentVerifier = "local-dev-independent-settlement-fixture";
+}
+
 public enum AdequacyMode { ExactFormal, FiniteEnumerated, FiniteWitnessed, Statistical }
 public enum ResidualUniverseKind { FiniteObserved, FormalComplete }
 public enum CandidateKind { PremiseSet, Bridge, Subgoal, Abstraction, Reroot, Counterexample, DefinitionPackage, EvidenceAcquisition }

@@ -49,3 +49,7 @@ independent formal receipt and a universe declared `formal-complete`.
 binds a frozen state and proposal directly, has an independent authority, and has no attempt or
 allocation field. This lets historical or externally produced mock outcomes calibrate intuition
 without converting shadow allocation into execution.
+
+Independent settlement authority is an exact, case-sensitive allow-list. Proved and refuted
+outcomes require at least one receipt whose content exists at, and matches, its `sha256:` store
+address. Open outcomes may omit receipts; any receipt they do name is verified the same way.

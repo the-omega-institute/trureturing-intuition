@@ -27,6 +27,7 @@ public static Task<int> RunAsync(string[] args)
                 "formalization-request" => RegisterFormalizationRequest(store, Required(options, "input")),
                 "build-release" => BuildRelease(store, options),
                 "calibrate" => Calibrate(store, Required(options, "valuation-set-ref"), Many(options, "settlement-ref")),
+                "calibrate-independent" => CalibrateIndependent(store, Required(options, "independent-settlement-ref")),
                 "verify" => Verify(store, Required(options, "kind"), Required(options, "ref")),
                 "example-cycle" => ExampleCycle(store, Required(options, "site")),
                 _ => Fail($"unknown command '{command}'")

@@ -2,11 +2,24 @@ local M = {}
 local core = require("core")
 M.spec = {
   consumes = { "shadow_cycle_complete", "settlement_registered", "independent_settlement_registered" },
-  produces = { "intuition_release_ready" },
+  produces = { "intuition_release_ready", "intuition_calibration_ready" },
   stall_window = "5m",
 }
 function pipeline(event)
   local x = event.payload or {}
+  if x.independent_settlement_ref then
+    local p = core.paths(x.repo_root)
+    local result = core.run_cli(p, { "calibrate-independent", "--root", p.store,
+      "--independent-settlement-ref", x.independent_settlement_ref }, 300)
+    raise("intuition_calibration_ready", {
+      repo_root = x.repo_root,
+      run_id = x.run_id,
+      calibration_ref = result.calibration_ref,
+      independent_settlement_refs = result.independent_settlement_refs,
+      valuation_set_ref = result.valuation_set_ref,
+    })
+    return
+  end
   if not x.state_ref or not x.proposal_set_ref or not x.critique_set_ref or not x.valuation_set_ref or not x.allocation_ref then
     log.info("update-history: settlement lacks complete cycle coordinates; retained by settlement artifact")
     return

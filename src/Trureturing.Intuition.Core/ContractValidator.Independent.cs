@@ -7,15 +7,28 @@ public static partial class ContractValidator
         RequireSchema(value.Schema, Schemas.IndependentSettlement);
         RequireArtifactRef(value.StateRef, nameof(value.StateRef));
         RequireArtifactRef(value.ProposalRef, nameof(value.ProposalRef));
-        RequireNonEmpty(value.SettlementAuthority, nameof(value.SettlementAuthority));
-        if (string.Equals(value.SettlementAuthority, "agent", StringComparison.OrdinalIgnoreCase))
+        if (value.SettlementAuthority is not SettlementAuthorities.IndependentVerifier
+            and not SettlementAuthorities.LocalDevMockIndependentVerifier)
         {
-            throw new InvalidOperationException("An agent cannot be settlement authority.");
+            throw new InvalidOperationException("settlement_authority is not an accepted independent settlement authority.");
         }
-        RequireSortedUniqueRefs(value.ReceiptRefs, nameof(value.ReceiptRefs));
+        var requiresEvidence = value.Outcome is ResearchOutcome.Proved or ResearchOutcome.Refuted;
+        RequireSortedUniqueRefs(value.ReceiptRefs, nameof(value.ReceiptRefs), requireNonEmpty: requiresEvidence);
         RequireNonEmpty(value.IntakeMode, nameof(value.IntakeMode));
         RequireNonEmpty(value.Notes, nameof(value.Notes));
         if (value.SettledAtUnix < 0) throw new InvalidOperationException("settled_at_unix is negative.");
+    }
+
+    internal static void Validate(IndependentSettlement value, Func<string, bool> receiptExists)
+    {
+        Validate(value);
+        foreach (var receiptRef in value.ReceiptRefs)
+        {
+            if (!receiptExists(receiptRef))
+            {
+                throw new InvalidOperationException($"receipt_refs contains missing or digest-invalid artifact {receiptRef}.");
+            }
+        }
     }
 
     public static void Validate(FormalizationRequest value)
