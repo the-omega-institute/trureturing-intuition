@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Trureturing.Intuition.Cli</RootNamespace>
+    <AssemblyName>Trureturing.Intuition.Cli</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj" />
+    <InternalsVisibleTo Include="Trureturing.Intuition.Tests" />
+  </ItemGroup>
+</Project>

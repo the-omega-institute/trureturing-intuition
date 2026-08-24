@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj" />
+  <Project Path="src/Trureturing.Intuition.Cli/Trureturing.Intuition.Cli.csproj" />
+  <Project Path="tests/Trureturing.Intuition.Tests/Trureturing.Intuition.Tests.csproj" />
+  <Project Path="tests/Trureturing.Intuition.ArchitectureTests/Trureturing.Intuition.ArchitectureTests.csproj" />
+</Solution>

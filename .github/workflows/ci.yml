@@ -1,0 +1,44 @@
+name: gate
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+env:
+  FKST_SUBSTRATE_COMMIT: 3122342a4cf2e0172355c724b9630f75498880bc
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build with warnings as errors
+        run: dotnet build Trureturing.Intuition.slnx -c Release
+      - name: Core lifecycle tests
+        run: dotnet run --project tests/Trureturing.Intuition.Tests -c Release --no-build
+      - name: Architecture boundary tests
+        run: dotnet run --project tests/Trureturing.Intuition.ArchitectureTests -c Release --no-build
+      - name: Build exact FKST substrate
+        run: |
+          git clone --filter=blob:none https://github.com/ChronoAIProject/fkst-substrate.git "$RUNNER_TEMP/fkst-substrate"
+          git -C "$RUNNER_TEMP/fkst-substrate" checkout "$FKST_SUBSTRATE_COMMIT"
+          cargo build --manifest-path "$RUNNER_TEMP/fkst-substrate/Cargo.toml" --release -p fkst-framework
+          echo "FKST_FRAMEWORK=$RUNNER_TEMP/fkst-substrate/target/release/fkst-framework" >> "$GITHUB_ENV"
+      - name: FKST package tests
+        run: >-
+          "$FKST_FRAMEWORK" test
+          --project-root "$GITHUB_WORKSPACE"
+          --package-root "$GITHUB_WORKSPACE/.fkst/local-packages/trureturing-intuition"
+          --report-json "$RUNNER_TEMP/fkst-test-report.json"
+      - name: FKST conformance
+        run: >-
+          "$FKST_FRAMEWORK" conformance
+          --project-root "$GITHUB_WORKSPACE"
+          --package-root "$GITHUB_WORKSPACE/.fkst/local-packages/trureturing-intuition"

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Trureturing.Intuition.Core</RootNamespace>
+    <AssemblyName>Trureturing.Intuition.Core</AssemblyName>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,9 @@
+bin/
+obj/
+artifacts/
+work/
+inbox/
+*.user
+*.suo
+.DS_Store
+.fkst/machine-profile.toml

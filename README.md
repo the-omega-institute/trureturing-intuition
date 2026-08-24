@@ -1,3 +1,60 @@
 # trureturing-intuition
 
-Verifier-grounded structural intuition organ for the TrueTurning ecosystem.
+`trureturing-intuition` is the read-only structural-intuition organ for the TrueTurning ecosystem.
+It consumes a verification receipt issued by the upstream `Trureturing.Truth` boundary, freezes a
+research state, proposes typed graph edits, reviews and values them, allocates only in shadow mode,
+records independently settled outcomes, and publishes a content-addressed intuition release for
+Pages and Paper.
+
+The organ does **not** parse the truth graph, replay the Frozen Ledger, validate the proof DAG, write
+base truth, or own deployment/engine composition. Those authorities remain upstream or in the
+configuration repository.
+
+## Research contract
+
+The operational definition is:
+
+```text
+intuition = an amortized policy over past independently settled research trajectories
+proposal  = a typed, falsifiable candidate edit to a frozen knowledge state
+value     = a vector of evidence-bound predictions, never an implicit scalar
+learning  = calibration between frozen predictions and independent settlement
+```
+
+The default policy is deliberately non-authoritative:
+
+```text
+selection_mode = shadow-pareto-bootstrap-v1
+scalarization  = forbidden
+base_write     = forbidden
+```
+
+## Pipeline
+
+```text
+verified truth-release receipt
+  -> frozen intuition state
+  -> proposal seats
+  -> adversarial review seats
+  -> vector valuation
+  -> shadow Pareto allocation
+  -> intuition-release.v1
+```
+
+The bootstrap policy cannot create attempts or settlements, even with an owner authorization.
+The attempt and settlement ledger contracts remain available for legacy records and a future,
+separately versioned executable policy.
+
+The responsibilities are expressed as FKST departments. An agent is a short-lived FKST Person
+spawned by a department; it is not a long-lived authority and it never stores business truth.
+
+## Build and test
+
+```bash
+dotnet build Trureturing.Intuition.slnx -c Release
+dotnet run --project tests/Trureturing.Intuition.Tests -c Release
+dotnet run --project tests/Trureturing.Intuition.ArchitectureTests -c Release
+```
+
+FKST package test and conformance are run against the exact substrate commit recorded in
+`.github/workflows/ci.yml`.
