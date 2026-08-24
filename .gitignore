@@ -1,6 +1,8 @@
 bin/
 obj/
-artifacts/
+artifacts/*
+!artifacts/sha256/
+!artifacts/sha256/**
 work/
 inbox/
 *.user

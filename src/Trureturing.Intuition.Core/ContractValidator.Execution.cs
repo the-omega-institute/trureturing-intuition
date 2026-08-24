@@ -56,6 +56,9 @@ public static void Validate(OwnerAuthorization value)
         RequireArtifactRef(value.AllocationRef, nameof(value.AllocationRef));
         RequireSortedUniqueRefs(value.AttemptRefs, nameof(value.AttemptRefs));
         RequireSortedUniqueRefs(value.SettlementRefs, nameof(value.SettlementRefs));
+        RequireSortedUniqueRefs(value.IndependentSettlementRefs, nameof(value.IndependentSettlementRefs));
+        RequireSortedUniqueRefs(value.FormalizationRequestRefs, nameof(value.FormalizationRequestRefs));
+        RequireArtifactRef(value.LedgerRef, nameof(value.LedgerRef));
         RequireArtifactRef(value.SourceTruthReleaseDigest, nameof(value.SourceTruthReleaseDigest));
     }
 

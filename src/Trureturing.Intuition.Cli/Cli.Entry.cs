@@ -23,9 +23,13 @@ public static Task<int> RunAsync(string[] args)
                 "coverage" => Coverage(store, Required(options, "universe-ref"), Required(options, "candidate-ref")),
                 "attempt" => Attempt(store, Required(options, "state-ref"), Required(options, "proposal-ref"), Required(options, "valuation-ref"), Required(options, "allocation-ref"), Required(options, "authorization-ref"), Required(options, "attempt-id"), Required(options, "executor")),
                 "settle" => Settle(store, Required(options, "input")),
+                "independent-settle" => IndependentSettle(store, Required(options, "input")),
+                "formalization-request" => RegisterFormalizationRequest(store, Required(options, "input")),
                 "build-release" => BuildRelease(store, options),
                 "calibrate" => Calibrate(store, Required(options, "valuation-set-ref"), Many(options, "settlement-ref")),
+                "calibrate-independent" => CalibrateIndependent(store, Required(options, "independent-settlement-ref")),
                 "verify" => Verify(store, Required(options, "kind"), Required(options, "ref")),
+                "example-cycle" => ExampleCycle(store, Required(options, "site")),
                 _ => Fail($"unknown command '{command}'")
             });
         }
@@ -52,6 +56,9 @@ public static Task<int> RunAsync(string[] args)
             "valuation" => store.Put(CanonicalJson.DeserializeStrict<IntuitionValuation>(bytes)),
             "authorization" => store.Put(CanonicalJson.DeserializeStrict<OwnerAuthorization>(bytes)),
             "settlement" => store.Put(CanonicalJson.DeserializeStrict<IntuitionSettlement>(bytes)),
+            "independent-settlement" => store.Put(CanonicalJson.DeserializeStrict<IndependentSettlement>(bytes)),
+            "formalization-request" => store.Put(CanonicalJson.DeserializeStrict<FormalizationRequest>(bytes)),
+            "ledger" => store.Put(CanonicalJson.DeserializeStrict<IntuitionLedger>(bytes)),
             "replay-case" => store.Put(CanonicalJson.DeserializeStrict<TemporalReplayCase>(bytes)),
             "replay-score" => store.Put(CanonicalJson.DeserializeStrict<ReplayScore>(bytes)),
             _ => throw new InvalidOperationException($"Unsupported store kind '{kind}'.")
@@ -63,43 +70,20 @@ public static Task<int> RunAsync(string[] args)
     private static int Ingest(ArtifactStore store, string input)
     {
         var envelope = CanonicalJson.DeserializeStrict<IntakeEnvelope>(File.ReadAllBytes(input));
-        if (envelope.Schema != Schemas.IntakeEnvelope) throw new InvalidOperationException("Unexpected intake envelope schema.");
         var receipt = CanonicalJson.DeserializeStrict<TruthReleaseVerificationReceipt>(File.ReadAllBytes(envelope.TruthReleaseReceiptPath));
         var target = CanonicalJson.DeserializeStrict<TargetInterface>(File.ReadAllBytes(envelope.TargetInterfacePath));
         var universe = CanonicalJson.DeserializeStrict<ResidualUniverse>(File.ReadAllBytes(envelope.ResidualUniversePath));
-        var receiptRef = store.Put(receipt);
-        var targetRef = store.Put(target);
-        var universeRef = store.Put(universe);
         var candidateEdits = envelope.CandidateEditPaths
             .Select(path => CanonicalJson.DeserializeStrict<CandidateEdit>(File.ReadAllBytes(path)))
             .ToArray();
-        ContractValidator.ValidateCandidateEditSet(candidateEdits);
-        var candidates = candidateEdits
-            .Select(store.Put)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-        var request = new IntuitionRunRequest(
-            Schemas.RunRequest,
-            envelope.RunId,
-            receiptRef,
-            targetRef,
-            universeRef,
-            candidates,
-            envelope.HistoryCutoff,
-            envelope.Budget,
-            envelope.VerificationProtocol,
-            envelope.ModelSnapshot,
-            "shadow-pareto-bootstrap-v1");
-        var requestRef = store.Put(request);
-        var state = StateFactory.Create(request, receipt, receiptRef);
-        var stateRef = store.Put(state);
+        var result = IntakeRouter.Freeze(store, envelope, receipt, target, universe, candidateEdits);
         WriteResult(new Dictionary<string, object?>
         {
-            ["state_ref"] = stateRef,
-            ["request_ref"] = requestRef,
-            ["candidate_refs"] = candidates,
-            ["agent_mode"] = envelope.AgentMode,
-            ["run_id"] = envelope.RunId
+            ["state_ref"] = result.StateRef,
+            ["request_ref"] = result.RequestRef,
+            ["candidate_refs"] = result.CandidateRefs,
+            ["agent_mode"] = result.AgentMode,
+            ["run_id"] = result.RunId
         });
         return 0;
     }

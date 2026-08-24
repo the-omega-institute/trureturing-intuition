@@ -28,10 +28,23 @@ public static class Schemas
     public const string Authorization = "owner-authorization.v1";
     public const string Attempt = "research-attempt.v1";
     public const string Settlement = "intuition-settlement.v1";
+    public const string IndependentSettlement = "independent-settlement.v1";
+    public const string FormalizationRequest = "formalization-request.v1";
+    public const string Ledger = "intuition-ledger.v1";
+    public const string LocalDevFrozenNode = "local-dev-frozen-truth-node.v1";
+    public const string LocalDevTruthSubset = "local-dev-mock-truth-subset.v1";
+    public const string LocalDevTruthRelease = "local-dev-mock-truth-release.v1";
+    public const string LocalDevSettlementEvidence = "local-dev-mock-settlement-evidence.v1";
     public const string Release = "intuition-release.v1";
     public const string ReplayCase = "temporal-replay-case.v1";
     public const string ReplayScore = "replay-score.v1";
     public const string Calibration = "calibration-report.v1";
+}
+
+public static class SettlementAuthorities
+{
+    public const string IndependentVerifier = "Trureturing.IndependentVerifier";
+    public const string LocalDevMockIndependentVerifier = "local-dev-independent-settlement-fixture";
 }
 
 public enum AdequacyMode { ExactFormal, FiniteEnumerated, FiniteWitnessed, Statistical }
@@ -43,6 +56,7 @@ public enum CertificationStatus { Unattempted, Proved, Refuted, Wall, Duplicate,
 public enum MetricStatus { Open, Measured }
 public enum ResearchOutcome { Proved, Refuted, Wall, Duplicate, Trivial, Open, InfrastructureFailure }
 public enum CoverageLevel { None, WitnessCut, FiniteObservedCover, FormalCover }
+public enum LocalDevTruthSubsetKind { Graph, Export }
 
 public sealed record VerificationBudget(
     long VerifierCalls,
@@ -269,6 +283,101 @@ public sealed record IntuitionSettlement(
     string Notes,
     long SettledAtUnix);
 
+public sealed record IndependentSettlement(
+    string Schema,
+    string StateRef,
+    string ProposalRef,
+    ResearchOutcome Outcome,
+    string SettlementAuthority,
+    IReadOnlyList<string> ReceiptRefs,
+    string IntakeMode,
+    string Notes,
+    long SettledAtUnix);
+
+public sealed record FormalizationRequest(
+    string Schema,
+    string RequestId,
+    string StateRef,
+    string ProposalRef,
+    string CandidateEditRef,
+    string SettlementRef,
+    string TargetRepository,
+    string TargetBaseBranch,
+    string RequestedLemma,
+    IReadOnlyList<string> EndpointRefs,
+    IReadOnlyList<string> EvidenceRefs,
+    bool MockWriteBack,
+    bool PushAllowed,
+    long RequestedAtUnix);
+
+public sealed record CalibrationSummary(
+    int ProvedCount,
+    int RefutedCount,
+    int OpenCount,
+    int TotalCount,
+    int EvaluatedCount,
+    double HitRate);
+
+public sealed record IntuitionLedgerEntry(
+    string CandidateId,
+    string CandidateEditRef,
+    string ProposalRef,
+    string ValuationRef,
+    IReadOnlyList<string> EndpointNodeIds,
+    IReadOnlyList<string> EndpointRefs,
+    string ConjecturedBridge,
+    WorthVector Worth,
+    bool OnParetoFront,
+    bool Dominated,
+    bool Incomparable,
+    string SettlementRef,
+    ResearchOutcome Outcome,
+    string? FormalizationRequestRef);
+
+public sealed record IntuitionLedger(
+    string Schema,
+    string StateRef,
+    string AllocationRef,
+    IReadOnlyList<IntuitionLedgerEntry> Candidates,
+    CalibrationSummary Calibration,
+    string Advisory,
+    long RecordedAtUnix);
+
+public sealed record LocalDevFrozenTruthNode(
+    string Schema,
+    string NodeId,
+    string SourceCommit,
+    string SourceTree,
+    string SourcePath,
+    string StatementSummary);
+
+public sealed record LocalDevMockTruthSubset(
+    string Schema,
+    LocalDevTruthSubsetKind Kind,
+    string AdapterIdentity,
+    string SourceRepository,
+    string SourceBranch,
+    string SourceCommit,
+    string SourceTree,
+    IReadOnlyList<string> NodeRefs,
+    string Caveat);
+
+public sealed record LocalDevMockTruthRelease(
+    string Schema,
+    string AdapterIdentity,
+    string SourceCommit,
+    string SourceTree,
+    string TruthGraphRef,
+    string TruthExportRef,
+    string Caveat);
+
+public sealed record LocalDevMockSettlementEvidence(
+    string Schema,
+    string ProposalRef,
+    ResearchOutcome Outcome,
+    string Finding,
+    bool MockEvidence);
+
 public sealed record IntuitionRelease(
     string Schema,
     string StateRef,
@@ -278,6 +387,9 @@ public sealed record IntuitionRelease(
     string AllocationRef,
     IReadOnlyList<string> AttemptRefs,
     IReadOnlyList<string> SettlementRefs,
+    IReadOnlyList<string> IndependentSettlementRefs,
+    IReadOnlyList<string> FormalizationRequestRefs,
+    string LedgerRef,
     string SourceTruthReleaseDigest,
     long PublishedAtUnix);
 

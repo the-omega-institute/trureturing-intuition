@@ -163,4 +163,46 @@ public static class Calibration
         ContractValidator.Validate(report);
         return report;
     }
+
+    public static CalibrationReport BuildIndependent(
+        string valuationSetRef,
+        IReadOnlyList<(string Ref, IntuitionValuation Value)> valuations,
+        IReadOnlyList<(string Ref, IndependentSettlement Value)> settlements)
+    {
+        var byProposal = valuations.ToDictionary(static item => item.Value.ProposalRef, static item => item.Value, StringComparer.Ordinal);
+        var brier = 0.0;
+        var correct = 0;
+        var predicted = Enum.GetValues<ResearchOutcome>().ToDictionary(static key => key.ToString(), static _ => 0, StringComparer.Ordinal);
+        var actual = Enum.GetValues<ResearchOutcome>().ToDictionary(static key => key.ToString(), static _ => 0, StringComparer.Ordinal);
+        var count = 0;
+        foreach (var settlementPair in settlements)
+        {
+            var settlement = settlementPair.Value;
+            if (!byProposal.TryGetValue(settlement.ProposalRef, out var valuation)) continue;
+            count++;
+            foreach (var outcome in Enum.GetValues<ResearchOutcome>())
+            {
+                var expected = outcome == settlement.Outcome ? 1.0 : 0.0;
+                var delta = valuation.PredictedOutcomes.For(outcome) - expected;
+                brier += delta * delta;
+            }
+            var top = valuation.PredictedOutcomes.TopOutcome();
+            if (top == settlement.Outcome) correct++;
+            predicted[top.ToString()]++;
+            actual[settlement.Outcome.ToString()]++;
+        }
+        var refs = settlements.Select(static item => item.Ref).Order(StringComparer.Ordinal).ToArray();
+        var report = new CalibrationReport(
+            Schemas.Calibration,
+            valuationSetRef,
+            refs,
+            count,
+            count == 0 ? 0 : brier / count,
+            count == 0 ? 0 : (double)correct / count,
+            0,
+            predicted,
+            actual);
+        ContractValidator.Validate(report);
+        return report;
+    }
 }

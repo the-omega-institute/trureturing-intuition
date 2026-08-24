@@ -45,6 +45,10 @@ The bootstrap policy cannot create attempts or settlements, even with an owner a
 The attempt and settlement ledger contracts remain available for legacy records and a future,
 separately versioned executable policy.
 
+Independently observed research outcomes use a separate `independent-settlement.v1` intake. They
+do not contain an attempt reference and do not represent work selected or executed by the shadow
+allocator.
+
 The responsibilities are expressed as FKST departments. An agent is a short-lived FKST Person
 spawned by a department; it is not a long-lived authority and it never stores business truth.
 
@@ -55,6 +59,19 @@ dotnet build Trureturing.Intuition.slnx -c Release
 dotnet run --project tests/Trureturing.Intuition.Tests -c Release
 dotnet run --project tests/Trureturing.Intuition.ArchitectureTests -c Release
 ```
+
+## Complete local example
+
+Run the deterministic generate, settle, write-back, ledger, and Pages example with:
+
+```bash
+dotnet run --project src/Trureturing.Intuition.Cli -c Release -- \
+  example-cycle --root artifacts --site site
+```
+
+This command uses the explicitly non-authoritative local dev mock receipt adapter. It never invokes
+the attempt path, selects nothing for execution, and never pushes a formalization request to the
+base truth repository. See [the example cycle notes](docs/example-cycle.md).
 
 FKST package test and conformance are run against the exact substrate commit recorded in
 `.github/workflows/ci.yml`.

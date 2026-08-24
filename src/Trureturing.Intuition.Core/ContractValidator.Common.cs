@@ -30,6 +30,13 @@ public static void Validate(object artifact)
             case OwnerAuthorization value: Validate(value); break;
             case ResearchAttempt value: Validate(value); break;
             case IntuitionSettlement value: Validate(value); break;
+            case IndependentSettlement value: Validate(value); break;
+            case FormalizationRequest value: Validate(value); break;
+            case IntuitionLedger value: Validate(value); break;
+            case LocalDevFrozenTruthNode value: Validate(value); break;
+            case LocalDevMockTruthSubset value: Validate(value); break;
+            case LocalDevMockTruthRelease value: Validate(value); break;
+            case LocalDevMockSettlementEvidence value: Validate(value); break;
             case IntuitionRelease value: Validate(value); break;
             case TemporalReplayCase value: Validate(value); break;
             case ReplayScore value: Validate(value); break;

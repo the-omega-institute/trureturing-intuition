@@ -15,11 +15,15 @@ var tests = new (string Name, Action Run)[]
     ("formal complete universe yields formal cover", FormalCover),
     ("temporal future leakage rejected", TemporalLeakageRejected),
     ("agent cannot settle", AgentCannotSettle),
+    ("independent conclusive settlement evidence is store-bound", IndependentSettlementEvidenceBound),
+    ("independent settlement authority is allow-listed exactly", IndependentSettlementAuthorityAllowList),
+    ("independent settlements enter calibration history", IndependentSettlementCalibrationHistory),
     ("infrastructure failure cannot claim gain", InfrastructureFailureHasNoGain),
     ("state factory binds upstream receipt", StateBindsReceipt),
     ("store blocks direct and unchecked bootstrap attempts", StoreBlocksBootstrapAttempts),
     ("store blocks base_write attempt", StoreBlocksBaseWriteAttempt),
-    ("CLI blocks bootstrap attempts and release graph mismatches", CliSafetyInvariants)
+    ("CLI blocks bootstrap attempts and release graph mismatches", CliSafetyInvariants),
+    ("example cycle preserves shadow safety end to end", ExampleCycleEndToEnd)
 };
 
 var failed = 0;
@@ -136,6 +140,75 @@ static void AgentCannotSettle()
     Assert.Throws(() => ContractValidator.Validate(settlement));
 }
 
+static IndependentSettlement IndependentSettlement(
+    string proposalRef,
+    ResearchOutcome outcome,
+    IReadOnlyList<string> receiptRefs,
+    string authority = SettlementAuthorities.IndependentVerifier,
+    string? stateRef = null) =>
+    new(Schemas.IndependentSettlement, stateRef ?? Hash('1'), proposalRef, outcome, authority, receiptRefs, "independent-test-v1", "test finding", 1);
+
+static void IndependentSettlementEvidenceBound()
+{
+    var emptyProved = IndependentSettlement(Hash('2'), ResearchOutcome.Proved, Array.Empty<string>());
+    Assert.Throws(() => ContractValidator.Validate(emptyProved));
+    ContractValidator.Validate(IndependentSettlement(Hash('2'), ResearchOutcome.Open, Array.Empty<string>()));
+
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    var missingEvidence = IndependentSettlement(Hash('2'), ResearchOutcome.Refuted, new[] { Hash('f') });
+    var before = StoredArtifactCount(temp.Path);
+    Assert.Throws(() => store.Put(missingEvidence));
+    Assert.Equal(before, StoredArtifactCount(temp.Path));
+
+    var evidenceRef = store.Put(new LocalDevMockSettlementEvidence(
+        Schemas.LocalDevSettlementEvidence, Hash('2'), ResearchOutcome.Proved, "independent test evidence", MockEvidence: true));
+    var proved = IndependentSettlement(Hash('2'), ResearchOutcome.Proved, new[] { evidenceRef });
+    store.Put(proved);
+
+    File.AppendAllText(store.PathFor(evidenceRef), " ");
+    Assert.Throws(() => store.Put(proved with { SettledAtUnix = 2 }));
+
+    var uncheckedRef = PutUnchecked(store, missingEvidence);
+    Assert.Throws(() => store.Get<IndependentSettlement>(uncheckedRef));
+}
+
+static void IndependentSettlementAuthorityAllowList()
+{
+    var settlement = IndependentSettlement(Hash('2'), ResearchOutcome.Open, Array.Empty<string>());
+    ContractValidator.Validate(settlement);
+    ContractValidator.Validate(settlement with { SettlementAuthority = SettlementAuthorities.LocalDevMockIndependentVerifier });
+    foreach (var authority in new[] { "agent", "agent ", "executor", "trureturing.independentverifier", SettlementAuthorities.IndependentVerifier + " " })
+    {
+        Assert.Throws(() => ContractValidator.Validate(settlement with { SettlementAuthority = authority }));
+    }
+}
+
+static void IndependentSettlementCalibrationHistory()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    var stateRef = store.Put(State());
+    var firstProposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "first", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
+    var secondProposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "second", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
+    var firstValuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, firstProposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));
+    var secondValuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, secondProposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));
+    var valuationRefs = new[] { firstValuationRef, secondValuationRef }.Order(StringComparer.Ordinal).ToArray();
+    var valuationSetRef = store.Put(new IntuitionValuationSet(Schemas.ValuationSet, stateRef, Hash('b'), Hash('c'), valuationRefs));
+    var firstEvidenceRef = store.Put(new LocalDevMockSettlementEvidence(Schemas.LocalDevSettlementEvidence, firstProposalRef, ResearchOutcome.Proved, "proved evidence", MockEvidence: true));
+    var secondEvidenceRef = store.Put(new LocalDevMockSettlementEvidence(Schemas.LocalDevSettlementEvidence, secondProposalRef, ResearchOutcome.Refuted, "refuted evidence", MockEvidence: true));
+    var firstSettlementRef = store.Put(IndependentSettlement(firstProposalRef, ResearchOutcome.Proved, new[] { firstEvidenceRef }, stateRef: stateRef));
+    var secondSettlementRef = store.Put(IndependentSettlement(secondProposalRef, ResearchOutcome.Refuted, new[] { secondEvidenceRef }, stateRef: stateRef));
+
+    Assert.Equal(0, Cli.RunAsync(new[] { "calibrate-independent", "--root", temp.Path, "--independent-settlement-ref", secondSettlementRef }).GetAwaiter().GetResult());
+    var report = store.FindBySchema<CalibrationReport>(Schemas.Calibration).Single().Value;
+    Assert.Equal(valuationSetRef, report.ValuationSetRef);
+    Assert.Equal(2, report.Count);
+    Assert.SequenceEqual(new[] { firstSettlementRef, secondSettlementRef }.Order(StringComparer.Ordinal), report.SettlementRefs);
+    Assert.Equal(1, report.ActualCounts["proved"]);
+    Assert.Equal(1, report.ActualCounts["refuted"]);
+}
+
 static void InfrastructureFailureHasNoGain()
 {
     var settlement = new IntuitionSettlement(Schemas.Settlement, Hash('1'), ResearchOutcome.InfrastructureFailure, "ci", new[] { Hash('2') }, Budget(), 1, 0, "", 1);
@@ -225,6 +298,62 @@ static void CliSafetyInvariants()
     Assert.Equal(2, Cli.RunAsync(mismatchArgs).GetAwaiter().GetResult());
     var missingArgs = releaseArgs.Select(value => value == linkedAllocationRef ? Hash('f') : value).ToArray();
     Assert.Equal(2, Cli.RunAsync(missingArgs).GetAwaiter().GetResult());
+}
+
+static void ExampleCycleEndToEnd()
+{
+    using var temp = new TempDirectory();
+    var artifacts = System.IO.Path.Combine(temp.Path, "artifacts");
+    var site = System.IO.Path.Combine(temp.Path, "site");
+    Assert.Equal(0, Cli.RunAsync(new[] { "example-cycle", "--root", artifacts, "--site", site }).GetAwaiter().GetResult());
+
+    var store = new ArtifactStore(artifacts);
+    var artifactPaths = Directory.EnumerateFiles(artifacts, "*.json", SearchOption.AllDirectories).ToArray();
+    Assert.True(artifactPaths.Length >= 40);
+    var schemaPaths = artifactPaths.ToDictionary(
+        path => System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(path)).RootElement.GetProperty("schema").GetString() + ":" + path,
+        path => path,
+        StringComparer.Ordinal);
+    var releasePath = schemaPaths.Single(pair => pair.Key.StartsWith(Schemas.Release + ":", StringComparison.Ordinal)).Value;
+    var releaseRef = "sha256:" + System.IO.Path.GetFileNameWithoutExtension(releasePath);
+    var release = store.Get<IntuitionRelease>(releaseRef);
+    Assert.Equal(0, release.AttemptRefs.Count);
+    Assert.Equal(0, release.SettlementRefs.Count);
+    Assert.Equal(4, release.IndependentSettlementRefs.Count);
+    Assert.Equal(2, release.FormalizationRequestRefs.Count);
+
+    var state = store.Get<IntuitionState>(release.StateRef);
+    Assert.Equal("shadow-pareto-bootstrap-v1", state.SelectionMode);
+    Assert.True(!state.ScalarizationAllowed);
+    Assert.True(!state.BaseWriteAllowed);
+    var allocation = store.Get<IntuitionAllocation>(release.AllocationRef);
+    Assert.Equal(0, allocation.SelectedForExecution.Count);
+    Assert.True(allocation.ParetoFront.Count > 0);
+    Assert.True(allocation.Dominated.Count > 0);
+
+    var outcomes = release.IndependentSettlementRefs
+        .Select(reference => store.Get<IndependentSettlement>(reference).Outcome)
+        .GroupBy(outcome => outcome)
+        .ToDictionary(group => group.Key, group => group.Count());
+    Assert.Equal(2, outcomes[ResearchOutcome.Proved]);
+    Assert.Equal(1, outcomes[ResearchOutcome.Refuted]);
+    Assert.Equal(1, outcomes[ResearchOutcome.Open]);
+    foreach (var requestRef in release.FormalizationRequestRefs)
+    {
+        var request = store.Get<FormalizationRequest>(requestRef);
+        Assert.True(request.MockWriteBack);
+        Assert.True(!request.PushAllowed);
+        Assert.Equal(ResearchOutcome.Proved, store.Get<IndependentSettlement>(request.SettlementRef).Outcome);
+    }
+
+    var ledger = store.Get<IntuitionLedger>(release.LedgerRef);
+    Assert.Equal(4, ledger.Candidates.Count);
+    Assert.Equal(2, ledger.Calibration.ProvedCount);
+    Assert.Equal(1, ledger.Calibration.RefutedCount);
+    Assert.Equal(1, ledger.Calibration.OpenCount);
+    Assert.Equal(2.0 / 3.0, ledger.Calibration.HitRate);
+    Assert.True(File.Exists(System.IO.Path.Combine(site, "index.html")));
+    Assert.True(!schemaPaths.Keys.Any(key => key.StartsWith(Schemas.Attempt + ":", StringComparison.Ordinal)));
 }
 
 static class Assert

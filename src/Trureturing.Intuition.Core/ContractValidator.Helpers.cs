@@ -51,8 +51,9 @@ public static void RequireArtifactRef(string? value, string name)
         if (string.IsNullOrWhiteSpace(value)) throw new InvalidOperationException($"{name} is empty.");
     }
 
-    private static void RequireSortedUniqueRefs(IReadOnlyList<string> values, string name)
+    private static void RequireSortedUniqueRefs(IReadOnlyList<string> values, string name, bool requireNonEmpty = false)
     {
+        if (requireNonEmpty && values.Count == 0) throw new InvalidOperationException($"{name} must contain at least one artifact reference.");
         foreach (var value in values) RequireArtifactRef(value, name);
         RequireSortedUniqueStrings(values, name);
     }

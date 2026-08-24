@@ -50,6 +50,12 @@ foreach (var token in new[] { "deployment", "provider", "target_identity", "engi
     if (manifest.Contains(token, StringComparison.OrdinalIgnoreCase)) failures.Add($"fkst.toml contains composition token {token}");
 }
 
+var updateHistory = File.ReadAllText(Path.Combine(luaRoot, "departments", "update-history", "main.lua"));
+foreach (var token in new[] { "independent_settlement_registered", "calibrate-independent", "--independent-settlement-ref", "intuition_calibration_ready" })
+{
+    if (!updateHistory.Contains(token, StringComparison.Ordinal)) failures.Add($"update-history does not propagate independent settlements through {token}");
+}
+
 var authorityRoots = new[] { "Trureturing.Intuition.Core", "Trureturing.Intuition.Cli" }
     .Select(project => Path.Combine(root, "src", project));
 failures.AddRange(FindAuthorityDuplicationFailures(authorityRoots, root));

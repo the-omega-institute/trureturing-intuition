@@ -1,0 +1,1 @@
+{"finding":"Mock independent formalization found no implication: factorization is an algebraic rewrite, while band containment needs separate order and positivity hypotheses.","mock_evidence":true,"outcome":"refuted","proposal_ref":"sha256:d5ebf1361f602809a0251589a4facc0ef0f92ce3b8aa08790c1cc103c49edace","schema":"local-dev-mock-settlement-evidence.v1"}
