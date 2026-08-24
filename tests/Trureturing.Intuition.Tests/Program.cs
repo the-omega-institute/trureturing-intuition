@@ -17,6 +17,8 @@ var tests = new (string Name, Action Run)[]
     ("agent cannot settle", AgentCannotSettle),
     ("infrastructure failure cannot claim gain", InfrastructureFailureHasNoGain),
     ("state factory binds upstream receipt", StateBindsReceipt),
+    ("store blocks direct and unchecked bootstrap attempts", StoreBlocksBootstrapAttempts),
+    ("store blocks base_write attempt", StoreBlocksBaseWriteAttempt),
     ("CLI blocks bootstrap attempts and release graph mismatches", CliSafetyInvariants)
 };
 
@@ -149,11 +151,58 @@ static void StateBindsReceipt()
     Assert.True(!state.BaseWriteAllowed);
 }
 
+static void StoreBlocksBootstrapAttempts()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    var state = State();
+    var stateRef = store.Put(state);
+    var valuationRef = Hash('1');
+    var allocationRef = store.Put(new IntuitionAllocation(Schemas.Allocation, stateRef, Hash('2'), "shadow-pareto-bootstrap-v1", new[] { valuationRef }, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), 1));
+    var attempt = new ResearchAttempt(Schemas.Attempt, "direct", stateRef, Hash('3'), valuationRef, allocationRef, Hash('4'), Budget(), "executor", 1);
+    var before = StoredArtifactCount(temp.Path);
+
+    Assert.Throws(() => store.Put(attempt));
+    Assert.Equal(before, StoredArtifactCount(temp.Path));
+
+    var uncheckedRef = PutUnchecked(store, attempt);
+    Assert.Throws(() => store.Get<ResearchAttempt>(uncheckedRef));
+}
+
+static void StoreBlocksBaseWriteAttempt()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    var stateRef = PutUnchecked(store, State() with { BaseWriteAllowed = true });
+    var valuationRef = Hash('1');
+    var allocationRef = store.Put(new IntuitionAllocation(Schemas.Allocation, stateRef, Hash('2'), "shadow-pareto-bootstrap-v1", new[] { valuationRef }, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), 1));
+    var attempt = new ResearchAttempt(Schemas.Attempt, "base-write", stateRef, Hash('3'), valuationRef, allocationRef, Hash('4'), Budget(), "executor", 1);
+    var before = StoredArtifactCount(temp.Path);
+
+    Assert.Throws(() => store.Put(attempt));
+    Assert.Equal(before, StoredArtifactCount(temp.Path));
+}
+
+static IntuitionState State() =>
+    new(Schemas.State, "run", Hash('4'), Hash('5'), Git('a'), Git('b'), Hash('6'), Hash('7'), Hash('8'), Hash('9'), new[] { Hash('a') }, Hash('c'), "cutoff", Budget(), "protocol", Hash('d'), "shadow-pareto-bootstrap-v1", false, false);
+
+static int StoredArtifactCount(string root) => Directory.EnumerateFiles(root, "*.json", SearchOption.AllDirectories).Count();
+
+static string PutUnchecked<T>(ArtifactStore store, T artifact)
+{
+    var bytes = CanonicalJson.Serialize(artifact);
+    var reference = "sha256:" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+    var path = store.PathFor(reference);
+    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+    File.WriteAllBytes(path, bytes);
+    return reference;
+}
+
 static void CliSafetyInvariants()
 {
     using var temp = new TempDirectory();
     var store = new ArtifactStore(temp.Path);
-    var state = new IntuitionState(Schemas.State, "run", Hash('4'), Hash('5'), Git('a'), Git('b'), Hash('6'), Hash('7'), Hash('8'), Hash('9'), new[] { Hash('a') }, Hash('c'), "cutoff", Budget(), "protocol", Hash('d'), "shadow-pareto-bootstrap-v1", false, false);
+    var state = State();
     var stateRef = store.Put(state);
     var proposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "proposal", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
     var valuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, proposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));

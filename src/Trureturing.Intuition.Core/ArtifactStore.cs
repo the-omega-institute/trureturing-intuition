@@ -14,15 +14,7 @@ public sealed class ArtifactStore
     public string Put<T>(T artifact)
     {
         ContractValidator.Validate(artifact!);
-        if (artifact is ResearchAttempt attempt)
-        {
-            var state = Get<IntuitionState>(attempt.StateRef);
-            var allocation = Get<IntuitionAllocation>(attempt.AllocationRef);
-            if (state.BaseWriteAllowed || state.SelectionMode == "shadow-pareto-bootstrap-v1" || allocation.Policy == "shadow-pareto-bootstrap-v1" || allocation.SelectedForExecution.Count == 0)
-            {
-                throw new InvalidOperationException("shadow-pareto-bootstrap-v1 forbids execution attempts.");
-            }
-        }
+        ValidateAttemptBoundary(artifact);
         var bytes = CanonicalJson.Serialize(artifact);
         var hex = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         var reference = $"sha256:{hex}";
@@ -65,6 +57,7 @@ public sealed class ArtifactStore
         }
         var value = CanonicalJson.DeserializeCanonical<T>(bytes);
         ContractValidator.Validate(value!);
+        ValidateAttemptBoundary(value);
         return value;
     }
 
@@ -73,5 +66,25 @@ public sealed class ArtifactStore
         ContractValidator.RequireArtifactRef(reference, nameof(reference));
         var hex = reference[7..];
         return Path.Combine(_root, "sha256", hex[..2], hex + ".json");
+    }
+
+    private void ValidateAttemptBoundary<T>(T artifact)
+    {
+        if (artifact is not ResearchAttempt attempt) return;
+
+        var state = Get<IntuitionState>(attempt.StateRef);
+        var allocation = Get<IntuitionAllocation>(attempt.AllocationRef);
+        if (state.BaseWriteAllowed)
+        {
+            throw new InvalidOperationException("Research attempts cannot persist with base_write enabled.");
+        }
+        if (state.SelectionMode == "shadow-pareto-bootstrap-v1" || allocation.Policy == "shadow-pareto-bootstrap-v1")
+        {
+            throw new InvalidOperationException("shadow-pareto-bootstrap-v1 forbids execution attempts.");
+        }
+        if (allocation.SelectedForExecution.Count == 0 || !allocation.SelectedForExecution.Contains(attempt.ValuationRef, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException("Attempt valuation was not selected for execution.");
+        }
     }
 }

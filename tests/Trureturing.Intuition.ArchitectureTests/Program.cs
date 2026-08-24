@@ -50,15 +50,18 @@ foreach (var token in new[] { "deployment", "provider", "target_identity", "engi
     if (manifest.Contains(token, StringComparison.OrdinalIgnoreCase)) failures.Add($"fkst.toml contains composition token {token}");
 }
 
-foreach (var authorityBoundary in new[] { "Trureturing.Intuition.Core", "Trureturing.Intuition.Cli" })
+var authorityRoots = new[] { "Trureturing.Intuition.Core", "Trureturing.Intuition.Cli" }
+    .Select(project => Path.Combine(root, "src", project));
+failures.AddRange(FindAuthorityDuplicationFailures(authorityRoots, root));
+
+using (var fixture = new TempDirectory())
 {
-    foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "src", authorityBoundary), "*.cs", SearchOption.TopDirectoryOnly))
+    var nestedCli = Path.Combine(fixture.Path, "Trureturing.Intuition.Cli", "Commands", "NestedAuthority.cs");
+    Directory.CreateDirectory(Path.GetDirectoryName(nestedCli)!);
+    File.WriteAllText(nestedCli, "using " + "Trureturing.Truth;\n");
+    if (FindAuthorityDuplicationFailures(new[] { Path.Combine(fixture.Path, "Trureturing.Intuition.Cli") }, fixture.Path).Count != 1)
     {
-        var text = File.ReadAllText(path);
-        foreach (var token in new[] { "namespace StrataLint", "using StrataLint", "using Trureturing.Truth", "FrozenLedger", "TruthGraphJsonReader", "TruthExportJsonReader" })
-        {
-            if (text.Contains(token, StringComparison.Ordinal)) failures.Add($"{Path.GetRelativePath(root, path)} duplicates upstream authority: {token}");
-        }
+        failures.Add("authority boundary scanner did not detect a forbidden token in a nested CLI source file");
     }
 }
 
@@ -87,4 +90,33 @@ static bool IsTextFile(string path)
     return extension is ".cs" or ".csproj" or ".md" or ".json" or ".toml" or ".lua" or ".yml" or ".yaml" or ".props" or ".slnx";
 }
 
-static bool IsSourceFile(string path) => !path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(segment => segment is "bin" or "obj");
+static List<string> FindAuthorityDuplicationFailures(IEnumerable<string> projectRoots, string displayRoot)
+{
+    var failures = new List<string>();
+    var forbidden = new[] { "namespace StrataLint", "using StrataLint", "using Trureturing.Truth", "FrozenLedger", "TruthGraphJsonReader", "TruthExportJsonReader" };
+    foreach (var projectRoot in projectRoots)
+    {
+        foreach (var path in Directory.EnumerateFiles(projectRoot, "*.cs", SearchOption.AllDirectories).Where(IsSourceFile))
+        {
+            var text = File.ReadAllText(path);
+            foreach (var token in forbidden)
+            {
+                if (text.Contains(token, StringComparison.Ordinal)) failures.Add($"{Path.GetRelativePath(displayRoot, path)} duplicates upstream authority: {token}");
+            }
+        }
+    }
+    return failures;
+}
+
+static bool IsSourceFile(string path) => !path
+    .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+    .Any(segment => segment.Equals("bin", StringComparison.OrdinalIgnoreCase)
+        || segment.Equals("obj", StringComparison.OrdinalIgnoreCase)
+        || segment.Equals("generated", StringComparison.OrdinalIgnoreCase));
+
+sealed class TempDirectory : IDisposable
+{
+    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "intuition-architecture-test-" + Guid.NewGuid().ToString("N"));
+    public TempDirectory() => Directory.CreateDirectory(Path);
+    public void Dispose() => Directory.Delete(Path, recursive: true);
+}
