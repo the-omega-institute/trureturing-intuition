@@ -70,8 +70,12 @@ public static Task<int> RunAsync(string[] args)
         var receiptRef = store.Put(receipt);
         var targetRef = store.Put(target);
         var universeRef = store.Put(universe);
-        var candidates = envelope.CandidateEditPaths
-            .Select(path => store.Put(CanonicalJson.DeserializeStrict<CandidateEdit>(File.ReadAllBytes(path))))
+        var candidateEdits = envelope.CandidateEditPaths
+            .Select(path => CanonicalJson.DeserializeStrict<CandidateEdit>(File.ReadAllBytes(path)))
+            .ToArray();
+        ContractValidator.ValidateCandidateEditSet(candidateEdits);
+        var candidates = candidateEdits
+            .Select(store.Put)
             .Order(StringComparer.Ordinal)
             .ToArray();
         var request = new IntuitionRunRequest(

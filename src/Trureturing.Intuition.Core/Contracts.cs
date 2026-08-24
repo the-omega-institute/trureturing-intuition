@@ -9,6 +9,7 @@ namespace Trureturing.Intuition.Core;
 
 public static class Schemas
 {
+    public const string TruthVerifierIdentity = "Trureturing.Truth";
     public const string TruthReceipt = "truth-release-verification-receipt.v1";
     public const string IntakeEnvelope = "intuition-intake-envelope.v1";
     public const string RunRequest = "intuition-run-request.v1";
@@ -319,4 +320,3 @@ public sealed record CalibrationReport(
 
 public sealed record CoverageAssessment(CoverageLevel Level, int CutCount, int UniverseCount, IReadOnlyList<string> MissingWitnessRefs, string? FormalReceiptRef);
 public sealed record ParetoResult(IReadOnlyList<string> ParetoFront, IReadOnlyList<string> Dominated, IReadOnlyList<string> Incomparable);
-

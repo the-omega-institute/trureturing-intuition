@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj" />
+    <InternalsVisibleTo Include="Trureturing.Intuition.Tests" />
   </ItemGroup>
 </Project>

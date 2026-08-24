@@ -12,6 +12,9 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
         var allocation = store.Get<IntuitionAllocation>(allocationRef);
         var authorization = store.Get<OwnerAuthorization>(authorizationRef);
         if (proposal.StateRef != stateRef || valuation.ProposalRef != proposalRef || allocation.StateRef != stateRef || authorization.AllocationRef != allocationRef) throw new InvalidOperationException("Attempt graph mismatch.");
+        if (state.BaseWriteAllowed) throw new InvalidOperationException("Research attempts cannot run with base_write enabled.");
+        if (allocation.Policy == "shadow-pareto-bootstrap-v1" || state.SelectionMode == "shadow-pareto-bootstrap-v1") throw new InvalidOperationException("shadow-pareto-bootstrap-v1 forbids execution attempts.");
+        if (allocation.SelectedForExecution.Count == 0 || !allocation.SelectedForExecution.Contains(valuationRef, StringComparer.Ordinal)) throw new InvalidOperationException("Valuation was not selected for execution.");
         if (!allocation.ParetoFront.Contains(valuationRef, StringComparer.Ordinal)) throw new InvalidOperationException("Authorized attempt valuation is outside Pareto front.");
         if (!authorization.AuthorizedProposalRefs.Contains(proposalRef, StringComparer.Ordinal)) throw new InvalidOperationException("Proposal is not owner-authorized.");
         var attempt = new ResearchAttempt(Schemas.Attempt, attemptId, stateRef, proposalRef, valuationRef, allocationRef, authorizationRef, state.Budget, executor, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
@@ -33,20 +36,90 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
     {
         var stateRef = Required(options, "state-ref");
         var state = store.Get<IntuitionState>(stateRef);
+        var proposalSetRef = Required(options, "proposal-set-ref");
+        var critiqueSetRef = Required(options, "critique-set-ref");
+        var valuationSetRef = Required(options, "valuation-set-ref");
+        var allocationRef = Required(options, "allocation-ref");
+        var attemptRefs = Many(options, "attempt-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
+        var settlementRefs = Many(options, "settlement-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
+
+        ValidateReleaseGraph(store, stateRef, state, proposalSetRef, critiqueSetRef, valuationSetRef, allocationRef, attemptRefs, settlementRefs);
         var release = new IntuitionRelease(
             Schemas.Release,
             stateRef,
-            Required(options, "proposal-set-ref"),
-            Required(options, "critique-set-ref"),
-            Required(options, "valuation-set-ref"),
-            Required(options, "allocation-ref"),
-            Many(options, "attempt-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray(),
-            Many(options, "settlement-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray(),
+            proposalSetRef,
+            critiqueSetRef,
+            valuationSetRef,
+            allocationRef,
+            attemptRefs,
+            settlementRefs,
             state.ReleaseDigest,
             DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         var reference = store.Put(release);
         WriteResult(new Dictionary<string, object?> { ["intuition_release_ref"] = reference });
         return 0;
+    }
+
+    private static void ValidateReleaseGraph(
+        ArtifactStore store,
+        string stateRef,
+        IntuitionState state,
+        string proposalSetRef,
+        string critiqueSetRef,
+        string valuationSetRef,
+        string allocationRef,
+        IReadOnlyList<string> attemptRefs,
+        IReadOnlyList<string> settlementRefs)
+    {
+        var proposalSet = store.Get<IntuitionProposalSet>(proposalSetRef);
+        if (proposalSet.StateRef != stateRef) throw new InvalidOperationException("Release proposal set belongs to a different state.");
+        var proposals = proposalSet.ProposalRefs.ToDictionary(reference => reference, store.Get<IntuitionProposal>, StringComparer.Ordinal);
+        if (proposals.Values.Any(proposal => proposal.StateRef != stateRef || !state.CandidateUniverse.Contains(proposal.CandidateEditRef, StringComparer.Ordinal)))
+        {
+            throw new InvalidOperationException("Release proposal graph does not belong to the state candidate universe.");
+        }
+
+        var critiqueSet = store.Get<IntuitionCritiqueSet>(critiqueSetRef);
+        if (critiqueSet.StateRef != stateRef || critiqueSet.ProposalSetRef != proposalSetRef) throw new InvalidOperationException("Release critique set graph mismatch.");
+        foreach (var critiqueRef in critiqueSet.CritiqueRefs)
+        {
+            var critique = store.Get<IntuitionCritique>(critiqueRef);
+            if (!proposals.ContainsKey(critique.ProposalRef)) throw new InvalidOperationException("Release critique references a proposal outside its proposal set.");
+        }
+
+        var valuationSet = store.Get<IntuitionValuationSet>(valuationSetRef);
+        if (valuationSet.StateRef != stateRef || valuationSet.ProposalSetRef != proposalSetRef || valuationSet.CritiqueSetRef != critiqueSetRef) throw new InvalidOperationException("Release valuation set graph mismatch.");
+        var valuations = valuationSet.ValuationRefs.ToDictionary(reference => reference, store.Get<IntuitionValuation>, StringComparer.Ordinal);
+        if (valuations.Values.Any(valuation => !proposals.ContainsKey(valuation.ProposalRef))) throw new InvalidOperationException("Release valuation references a proposal outside its proposal set.");
+
+        var allocation = store.Get<IntuitionAllocation>(allocationRef);
+        if (allocation.StateRef != stateRef || allocation.ValuationSetRef != valuationSetRef) throw new InvalidOperationException("Release allocation graph mismatch.");
+        var allocatedValuations = allocation.ParetoFront.Concat(allocation.Dominated).Concat(allocation.Incomparable).Concat(allocation.SelectedForExecution);
+        if (allocatedValuations.Any(reference => !valuations.ContainsKey(reference))) throw new InvalidOperationException("Release allocation references a valuation outside its valuation set.");
+
+        if (state.SelectionMode == "shadow-pareto-bootstrap-v1" && (attemptRefs.Count != 0 || settlementRefs.Count != 0))
+        {
+            throw new InvalidOperationException("A shadow bootstrap release cannot contain attempts or settlements.");
+        }
+
+        var attempts = new Dictionary<string, ResearchAttempt>(StringComparer.Ordinal);
+        foreach (var attemptRef in attemptRefs)
+        {
+            var attempt = store.Get<ResearchAttempt>(attemptRef);
+            if (attempt.StateRef != stateRef || attempt.AllocationRef != allocationRef || !proposals.ContainsKey(attempt.ProposalRef) || !valuations.TryGetValue(attempt.ValuationRef, out var valuation) || valuation.ProposalRef != attempt.ProposalRef)
+            {
+                throw new InvalidOperationException("Release attempt graph mismatch.");
+            }
+            var authorization = store.Get<OwnerAuthorization>(attempt.AuthorizationRef);
+            if (authorization.AllocationRef != allocationRef || !authorization.AuthorizedProposalRefs.Contains(attempt.ProposalRef, StringComparer.Ordinal)) throw new InvalidOperationException("Release attempt authorization graph mismatch.");
+            attempts.Add(attemptRef, attempt);
+        }
+
+        foreach (var settlementRef in settlementRefs)
+        {
+            var settlement = store.Get<IntuitionSettlement>(settlementRef);
+            if (!attempts.ContainsKey(settlement.AttemptRef)) throw new InvalidOperationException("Release settlement references an attempt outside the release.");
+        }
     }
 
     private static int Calibrate(ArtifactStore store, string valuationSetRef, IReadOnlyList<string> settlementRefs)

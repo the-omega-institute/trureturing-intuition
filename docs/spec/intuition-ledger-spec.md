@@ -15,7 +15,8 @@
 10. Claims that a connection reduces research cost require replay or prospective controls.
 11. Temporal replay forbids future artifact references, future theorem names and future dependency
     information in source features.
-12. Shadow mode selects no attempt. Execution requires an owner-authorization artifact.
+12. Shadow mode selects no attempt and cannot execute. A future executable policy must still
+    require an owner-authorization artifact.
 
 ## Closed action kinds
 

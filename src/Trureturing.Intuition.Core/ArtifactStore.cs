@@ -14,6 +14,15 @@ public sealed class ArtifactStore
     public string Put<T>(T artifact)
     {
         ContractValidator.Validate(artifact!);
+        if (artifact is ResearchAttempt attempt)
+        {
+            var state = Get<IntuitionState>(attempt.StateRef);
+            var allocation = Get<IntuitionAllocation>(attempt.AllocationRef);
+            if (state.BaseWriteAllowed || state.SelectionMode == "shadow-pareto-bootstrap-v1" || allocation.Policy == "shadow-pareto-bootstrap-v1" || allocation.SelectedForExecution.Count == 0)
+            {
+                throw new InvalidOperationException("shadow-pareto-bootstrap-v1 forbids execution attempts.");
+            }
+        }
         var bytes = CanonicalJson.Serialize(artifact);
         var hex = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         var reference = $"sha256:{hex}";
@@ -66,4 +75,3 @@ public sealed class ArtifactStore
         return Path.Combine(_root, "sha256", hex[..2], hex + ".json");
     }
 }
-

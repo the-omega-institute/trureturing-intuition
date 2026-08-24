@@ -38,10 +38,12 @@ verified truth-release receipt
   -> adversarial review seats
   -> vector valuation
   -> shadow Pareto allocation
-  -> optional owner-authorized attempt
-  -> independent settlement
   -> intuition-release.v1
 ```
+
+The bootstrap policy cannot create attempts or settlements, even with an owner authorization.
+The attempt and settlement ledger contracts remain available for legacy records and a future,
+separately versioned executable policy.
 
 The responsibilities are expressed as FKST departments. An agent is a short-lived FKST Person
 spawned by a department; it is not a long-lived authority and it never stores business truth.

@@ -13,7 +13,7 @@ var forbiddenComposition = new[]
 };
 foreach (var productionRoot in productionRoots)
 {
-    foreach (var path in Directory.EnumerateFiles(productionRoot, "*", SearchOption.AllDirectories).Where(IsTextFile))
+    foreach (var path in Directory.EnumerateFiles(productionRoot, "*", SearchOption.AllDirectories).Where(IsSourceFile).Where(IsTextFile))
     {
         var text = File.ReadAllText(path);
         foreach (var token in forbiddenComposition)
@@ -50,12 +50,15 @@ foreach (var token in new[] { "deployment", "provider", "target_identity", "engi
     if (manifest.Contains(token, StringComparison.OrdinalIgnoreCase)) failures.Add($"fkst.toml contains composition token {token}");
 }
 
-foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "src", "Trureturing.Intuition.Core"), "*.cs", SearchOption.TopDirectoryOnly))
+foreach (var authorityBoundary in new[] { "Trureturing.Intuition.Core", "Trureturing.Intuition.Cli" })
 {
-    var text = File.ReadAllText(path);
-    foreach (var token in new[] { "namespace StrataLint", "using StrataLint", "using Trureturing.Truth", "FrozenLedger", "TruthGraphJsonReader", "TruthExportJsonReader" })
+    foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "src", authorityBoundary), "*.cs", SearchOption.TopDirectoryOnly))
     {
-        if (text.Contains(token, StringComparison.Ordinal)) failures.Add($"{Path.GetFileName(path)} duplicates upstream authority: {token}");
+        var text = File.ReadAllText(path);
+        foreach (var token in new[] { "namespace StrataLint", "using StrataLint", "using Trureturing.Truth", "FrozenLedger", "TruthGraphJsonReader", "TruthExportJsonReader" })
+        {
+            if (text.Contains(token, StringComparison.Ordinal)) failures.Add($"{Path.GetRelativePath(root, path)} duplicates upstream authority: {token}");
+        }
     }
 }
 
@@ -83,3 +86,5 @@ static bool IsTextFile(string path)
     var extension = Path.GetExtension(path);
     return extension is ".cs" or ".csproj" or ".md" or ".json" or ".toml" or ".lua" or ".yml" or ".yaml" or ".props" or ".slnx";
 }
+
+static bool IsSourceFile(string path) => !path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(segment => segment is "bin" or "obj");

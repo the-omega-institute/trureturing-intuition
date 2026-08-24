@@ -3,7 +3,10 @@ using Trureturing.Intuition.Core;
 var tests = new (string Name, Action Run)[]
 {
     ("artifact roundtrip and tamper refusal", ArtifactRoundtrip),
+    ("truth receipt identity is bound", TruthReceiptIdentityBound),
     ("duplicate JSON property rejected", DuplicatePropertyRejected),
+    ("candidate edit self-cycle rejected", CandidateSelfCycleRejected),
+    ("candidate edit set cycle rejected", CandidateSetCycleRejected),
     ("open worth dimension cannot carry a value", OpenMetricCannotCarryValue),
     ("shadow allocation selects nothing", ShadowAllocationSelectsNothing),
     ("Pareto dominance respects vector cost", ParetoDominance),
@@ -13,7 +16,8 @@ var tests = new (string Name, Action Run)[]
     ("temporal future leakage rejected", TemporalLeakageRejected),
     ("agent cannot settle", AgentCannotSettle),
     ("infrastructure failure cannot claim gain", InfrastructureFailureHasNoGain),
-    ("state factory binds upstream receipt", StateBindsReceipt)
+    ("state factory binds upstream receipt", StateBindsReceipt),
+    ("CLI blocks bootstrap attempts and release graph mismatches", CliSafetyInvariants)
 };
 
 var failed = 0;
@@ -45,6 +49,13 @@ static void ArtifactRoundtrip()
     Assert.Throws(() => store.Get<TruthReleaseVerificationReceipt>(reference));
 }
 
+static void TruthReceiptIdentityBound()
+{
+    var fabricated = new TruthReleaseVerificationReceipt(Schemas.TruthReceipt, Hash('1'), Git('a'), Git('b'), Hash('2'), Hash('3'), "local-script", 1);
+    Assert.Throws(() => ContractValidator.Validate(fabricated));
+    ContractValidator.Validate(fabricated with { VerifiedBy = Schemas.TruthVerifierIdentity });
+}
+
 static void DuplicatePropertyRejected()
 {
     var bytes = System.Text.Encoding.UTF8.GetBytes("{\"schema\":\"x\",\"schema\":\"y\"}\n");
@@ -55,6 +66,20 @@ static void OpenMetricCannotCarryValue()
 {
     var bad = new IntuitionValuation(Schemas.Valuation, Hash('1'), new WorthVector(new MetricEvidence(MetricStatus.Open, 1, null), Open(), Open(), Open()), Budget(), Distribution(), 0, 0, .5, Array.Empty<string>(), "valuer", 1);
     Assert.Throws(() => ContractValidator.Validate(bad));
+}
+
+static void CandidateSelfCycleRejected()
+{
+    var reference = Hash('a');
+    var candidate = new CandidateEdit(Schemas.CandidateEdit, "self", CandidateKind.Bridge, new[] { reference }, new[] { reference }, "map", Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), "falsifier", "Lean");
+    Assert.Throws(() => ContractValidator.Validate(candidate));
+}
+
+static void CandidateSetCycleRejected()
+{
+    var first = new CandidateEdit(Schemas.CandidateEdit, "first", CandidateKind.Bridge, new[] { Hash('a') }, new[] { Hash('b') }, "map", Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), "falsifier", "Lean");
+    var second = new CandidateEdit(Schemas.CandidateEdit, "second", CandidateKind.Bridge, new[] { Hash('b') }, new[] { Hash('a') }, "map", Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), "falsifier", "Lean");
+    Assert.Throws(() => ContractValidator.ValidateCandidateEditSet(new[] { first, second }));
 }
 
 static void ShadowAllocationSelectsNothing()
@@ -122,6 +147,35 @@ static void StateBindsReceipt()
     var state = StateFactory.Create(request, receipt, Hash('4'));
     Assert.Equal(receipt.ReleaseDigest, state.ReleaseDigest);
     Assert.True(!state.BaseWriteAllowed);
+}
+
+static void CliSafetyInvariants()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    var state = new IntuitionState(Schemas.State, "run", Hash('4'), Hash('5'), Git('a'), Git('b'), Hash('6'), Hash('7'), Hash('8'), Hash('9'), new[] { Hash('a') }, Hash('c'), "cutoff", Budget(), "protocol", Hash('d'), "shadow-pareto-bootstrap-v1", false, false);
+    var stateRef = store.Put(state);
+    var proposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "proposal", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
+    var valuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, proposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));
+    var allocationRef = store.Put(new IntuitionAllocation(Schemas.Allocation, stateRef, Hash('3'), "shadow-pareto-bootstrap-v1", new[] { valuationRef }, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), 1));
+    var authorizationRef = store.Put(new OwnerAuthorization(Schemas.Authorization, allocationRef, new[] { proposalRef }, "owner", "test", 1));
+    var before = Directory.EnumerateFiles(temp.Path, "*.json", SearchOption.AllDirectories).Count();
+    var attemptExit = Cli.RunAsync(new[] { "attempt", "--root", temp.Path, "--state-ref", stateRef, "--proposal-ref", proposalRef, "--valuation-ref", valuationRef, "--allocation-ref", allocationRef, "--authorization-ref", authorizationRef, "--attempt-id", "attempt", "--executor", "executor" }).GetAwaiter().GetResult();
+    Assert.Equal(2, attemptExit);
+    Assert.Equal(before, Directory.EnumerateFiles(temp.Path, "*.json", SearchOption.AllDirectories).Count());
+
+    var proposalSetRef = store.Put(new IntuitionProposalSet(Schemas.ProposalSet, stateRef, new[] { proposalRef }));
+    var critiqueRef = store.Put(new IntuitionCritique(Schemas.Critique, proposalRef, "lens", "approve", Array.Empty<string>(), Array.Empty<string>(), "reviewer"));
+    var critiqueSetRef = store.Put(new IntuitionCritiqueSet(Schemas.CritiqueSet, stateRef, proposalSetRef, new[] { critiqueRef }));
+    var valuationSetRef = store.Put(new IntuitionValuationSet(Schemas.ValuationSet, stateRef, proposalSetRef, critiqueSetRef, new[] { valuationRef }));
+    var linkedAllocationRef = store.Put(new IntuitionAllocation(Schemas.Allocation, stateRef, valuationSetRef, "shadow-pareto-bootstrap-v1", new[] { valuationRef }, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), 1));
+    var releaseArgs = new[] { "build-release", "--root", temp.Path, "--state-ref", stateRef, "--proposal-set-ref", proposalSetRef, "--critique-set-ref", critiqueSetRef, "--valuation-set-ref", valuationSetRef, "--allocation-ref", linkedAllocationRef };
+    Assert.Equal(0, Cli.RunAsync(releaseArgs).GetAwaiter().GetResult());
+    var mismatchedSetRef = store.Put(new IntuitionProposalSet(Schemas.ProposalSet, Hash('e'), new[] { proposalRef }));
+    var mismatchArgs = releaseArgs.Select(value => value == proposalSetRef ? mismatchedSetRef : value).ToArray();
+    Assert.Equal(2, Cli.RunAsync(mismatchArgs).GetAwaiter().GetResult());
+    var missingArgs = releaseArgs.Select(value => value == linkedAllocationRef ? Hash('f') : value).ToArray();
+    Assert.Equal(2, Cli.RunAsync(missingArgs).GetAwaiter().GetResult());
 }
 
 static class Assert
