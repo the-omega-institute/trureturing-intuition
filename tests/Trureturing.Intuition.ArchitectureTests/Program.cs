@@ -56,12 +56,21 @@ failures.AddRange(FindAuthorityDuplicationFailures(authorityRoots, root));
 
 using (var fixture = new TempDirectory())
 {
-    var nestedCli = Path.Combine(fixture.Path, "Trureturing.Intuition.Cli", "Commands", "NestedAuthority.cs");
+    var cliRoot = Path.Combine(fixture.Path, "src", "Trureturing.Intuition.Cli");
+    var nestedCli = Path.Combine(cliRoot, "Commands", "NestedAuthority.cs");
     Directory.CreateDirectory(Path.GetDirectoryName(nestedCli)!);
     File.WriteAllText(nestedCli, "using " + "Trureturing.Truth;\n");
-    if (FindAuthorityDuplicationFailures(new[] { Path.Combine(fixture.Path, "Trureturing.Intuition.Cli") }, fixture.Path).Count != 1)
+    if (FindAuthorityDuplicationFailures(new[] { cliRoot }, fixture.Path).Count != 1)
     {
         failures.Add("authority boundary scanner did not detect a forbidden token in a nested CLI source file");
+    }
+
+    var generatedCli = Path.Combine(cliRoot, "Features", "generated", "GeneratedAuthority.cs");
+    Directory.CreateDirectory(Path.GetDirectoryName(generatedCli)!);
+    File.WriteAllText(generatedCli, "using " + "Trureturing.Truth;\n");
+    if (FindAuthorityDuplicationFailures(new[] { cliRoot }, fixture.Path).Count != 2)
+    {
+        failures.Add("authority boundary scanner did not detect a forbidden token in a generated-named source directory");
     }
 }
 
@@ -111,8 +120,7 @@ static List<string> FindAuthorityDuplicationFailures(IEnumerable<string> project
 static bool IsSourceFile(string path) => !path
     .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
     .Any(segment => segment.Equals("bin", StringComparison.OrdinalIgnoreCase)
-        || segment.Equals("obj", StringComparison.OrdinalIgnoreCase)
-        || segment.Equals("generated", StringComparison.OrdinalIgnoreCase));
+        || segment.Equals("obj", StringComparison.OrdinalIgnoreCase));
 
 sealed class TempDirectory : IDisposable
 {
