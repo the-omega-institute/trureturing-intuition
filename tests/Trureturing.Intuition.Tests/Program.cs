@@ -19,7 +19,8 @@ var tests = new (string Name, Action Run)[]
     ("state factory binds upstream receipt", StateBindsReceipt),
     ("store blocks direct and unchecked bootstrap attempts", StoreBlocksBootstrapAttempts),
     ("store blocks base_write attempt", StoreBlocksBaseWriteAttempt),
-    ("CLI blocks bootstrap attempts and release graph mismatches", CliSafetyInvariants)
+    ("CLI blocks bootstrap attempts and release graph mismatches", CliSafetyInvariants),
+    ("example cycle preserves shadow safety end to end", ExampleCycleEndToEnd)
 };
 
 var failed = 0;
@@ -225,6 +226,62 @@ static void CliSafetyInvariants()
     Assert.Equal(2, Cli.RunAsync(mismatchArgs).GetAwaiter().GetResult());
     var missingArgs = releaseArgs.Select(value => value == linkedAllocationRef ? Hash('f') : value).ToArray();
     Assert.Equal(2, Cli.RunAsync(missingArgs).GetAwaiter().GetResult());
+}
+
+static void ExampleCycleEndToEnd()
+{
+    using var temp = new TempDirectory();
+    var artifacts = System.IO.Path.Combine(temp.Path, "artifacts");
+    var site = System.IO.Path.Combine(temp.Path, "site");
+    Assert.Equal(0, Cli.RunAsync(new[] { "example-cycle", "--root", artifacts, "--site", site }).GetAwaiter().GetResult());
+
+    var store = new ArtifactStore(artifacts);
+    var artifactPaths = Directory.EnumerateFiles(artifacts, "*.json", SearchOption.AllDirectories).ToArray();
+    Assert.True(artifactPaths.Length >= 40);
+    var schemaPaths = artifactPaths.ToDictionary(
+        path => System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(path)).RootElement.GetProperty("schema").GetString() + ":" + path,
+        path => path,
+        StringComparer.Ordinal);
+    var releasePath = schemaPaths.Single(pair => pair.Key.StartsWith(Schemas.Release + ":", StringComparison.Ordinal)).Value;
+    var releaseRef = "sha256:" + System.IO.Path.GetFileNameWithoutExtension(releasePath);
+    var release = store.Get<IntuitionRelease>(releaseRef);
+    Assert.Equal(0, release.AttemptRefs.Count);
+    Assert.Equal(0, release.SettlementRefs.Count);
+    Assert.Equal(4, release.IndependentSettlementRefs.Count);
+    Assert.Equal(2, release.FormalizationRequestRefs.Count);
+
+    var state = store.Get<IntuitionState>(release.StateRef);
+    Assert.Equal("shadow-pareto-bootstrap-v1", state.SelectionMode);
+    Assert.True(!state.ScalarizationAllowed);
+    Assert.True(!state.BaseWriteAllowed);
+    var allocation = store.Get<IntuitionAllocation>(release.AllocationRef);
+    Assert.Equal(0, allocation.SelectedForExecution.Count);
+    Assert.True(allocation.ParetoFront.Count > 0);
+    Assert.True(allocation.Dominated.Count > 0);
+
+    var outcomes = release.IndependentSettlementRefs
+        .Select(reference => store.Get<IndependentSettlement>(reference).Outcome)
+        .GroupBy(outcome => outcome)
+        .ToDictionary(group => group.Key, group => group.Count());
+    Assert.Equal(2, outcomes[ResearchOutcome.Proved]);
+    Assert.Equal(1, outcomes[ResearchOutcome.Refuted]);
+    Assert.Equal(1, outcomes[ResearchOutcome.Open]);
+    foreach (var requestRef in release.FormalizationRequestRefs)
+    {
+        var request = store.Get<FormalizationRequest>(requestRef);
+        Assert.True(request.MockWriteBack);
+        Assert.True(!request.PushAllowed);
+        Assert.Equal(ResearchOutcome.Proved, store.Get<IndependentSettlement>(request.SettlementRef).Outcome);
+    }
+
+    var ledger = store.Get<IntuitionLedger>(release.LedgerRef);
+    Assert.Equal(4, ledger.Candidates.Count);
+    Assert.Equal(2, ledger.Calibration.ProvedCount);
+    Assert.Equal(1, ledger.Calibration.RefutedCount);
+    Assert.Equal(1, ledger.Calibration.OpenCount);
+    Assert.Equal(2.0 / 3.0, ledger.Calibration.HitRate);
+    Assert.True(File.Exists(System.IO.Path.Combine(site, "index.html")));
+    Assert.True(!schemaPaths.Keys.Any(key => key.StartsWith(Schemas.Attempt + ":", StringComparison.Ordinal)));
 }
 
 static class Assert

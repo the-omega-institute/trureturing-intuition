@@ -32,6 +32,40 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
         return 0;
     }
 
+    private static int IndependentSettle(ArtifactStore store, string input)
+    {
+        var settlement = CanonicalJson.DeserializeStrict<IndependentSettlement>(File.ReadAllBytes(input));
+        var state = store.Get<IntuitionState>(settlement.StateRef);
+        var proposal = store.Get<IntuitionProposal>(settlement.ProposalRef);
+        if (proposal.StateRef != settlement.StateRef) throw new InvalidOperationException("Independent settlement proposal belongs to a different state.");
+        if (!state.CandidateUniverse.Contains(proposal.CandidateEditRef, StringComparer.Ordinal)) throw new InvalidOperationException("Independent settlement proposal is outside the frozen candidate universe.");
+        if (state.SelectionMode != "shadow-pareto-bootstrap-v1") throw new InvalidOperationException("v1 independent intake expects the frozen bootstrap state.");
+        var reference = store.Put(settlement);
+        WriteResult(new Dictionary<string, object?> { ["independent_settlement_ref"] = reference, ["proposal_ref"] = settlement.ProposalRef });
+        return 0;
+    }
+
+    private static int RegisterFormalizationRequest(ArtifactStore store, string input)
+    {
+        var request = CanonicalJson.DeserializeStrict<FormalizationRequest>(File.ReadAllBytes(input));
+        var proposal = store.Get<IntuitionProposal>(request.ProposalRef);
+        var candidate = store.Get<CandidateEdit>(request.CandidateEditRef);
+        var settlement = store.Get<IndependentSettlement>(request.SettlementRef);
+        if (proposal.StateRef != request.StateRef || proposal.CandidateEditRef != request.CandidateEditRef)
+        {
+            throw new InvalidOperationException("Formalization request proposal graph mismatch.");
+        }
+        var candidateEndpoints = candidate.Inputs.Concat(candidate.Outputs).Order(StringComparer.Ordinal).ToArray();
+        if (!candidateEndpoints.SequenceEqual(request.EndpointRefs)) throw new InvalidOperationException("Formalization request endpoints do not match the candidate bridge.");
+        if (settlement.StateRef != request.StateRef || settlement.ProposalRef != request.ProposalRef || settlement.Outcome != ResearchOutcome.Proved)
+        {
+            throw new InvalidOperationException("Formalization requests require a proved independent settlement for the same proposal.");
+        }
+        var reference = store.Put(request);
+        WriteResult(new Dictionary<string, object?> { ["formalization_request_ref"] = reference });
+        return 0;
+    }
+
     private static int BuildRelease(ArtifactStore store, IReadOnlyDictionary<string, List<string>> options)
     {
         var stateRef = Required(options, "state-ref");
@@ -42,8 +76,18 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
         var allocationRef = Required(options, "allocation-ref");
         var attemptRefs = Many(options, "attempt-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
         var settlementRefs = Many(options, "settlement-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
+        var independentSettlementRefs = Many(options, "independent-settlement-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
+        var formalizationRequestRefs = Many(options, "formalization-request-ref").Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
+        var ledgerRef = Optional(options, "ledger-ref") ?? store.Put(new IntuitionLedger(
+            Schemas.Ledger,
+            stateRef,
+            allocationRef,
+            Array.Empty<IntuitionLedgerEntry>(),
+            new CalibrationSummary(0, 0, 0, 0, 0, 0),
+            "Advisory research ledger: proposals are conjectures, not certified truth.",
+            DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
 
-        ValidateReleaseGraph(store, stateRef, state, proposalSetRef, critiqueSetRef, valuationSetRef, allocationRef, attemptRefs, settlementRefs);
+        ValidateReleaseGraph(store, stateRef, state, proposalSetRef, critiqueSetRef, valuationSetRef, allocationRef, attemptRefs, settlementRefs, independentSettlementRefs, formalizationRequestRefs, ledgerRef);
         var release = new IntuitionRelease(
             Schemas.Release,
             stateRef,
@@ -53,6 +97,9 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
             allocationRef,
             attemptRefs,
             settlementRefs,
+            independentSettlementRefs,
+            formalizationRequestRefs,
+            ledgerRef,
             state.ReleaseDigest,
             DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         var reference = store.Put(release);
@@ -69,7 +116,10 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
         string valuationSetRef,
         string allocationRef,
         IReadOnlyList<string> attemptRefs,
-        IReadOnlyList<string> settlementRefs)
+        IReadOnlyList<string> settlementRefs,
+        IReadOnlyList<string> independentSettlementRefs,
+        IReadOnlyList<string> formalizationRequestRefs,
+        string ledgerRef)
     {
         var proposalSet = store.Get<IntuitionProposalSet>(proposalSetRef);
         if (proposalSet.StateRef != stateRef) throw new InvalidOperationException("Release proposal set belongs to a different state.");
@@ -120,6 +170,65 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
             var settlement = store.Get<IntuitionSettlement>(settlementRef);
             if (!attempts.ContainsKey(settlement.AttemptRef)) throw new InvalidOperationException("Release settlement references an attempt outside the release.");
         }
+
+        var independentSettlements = new Dictionary<string, IndependentSettlement>(StringComparer.Ordinal);
+        foreach (var settlementRef in independentSettlementRefs)
+        {
+            var settlement = store.Get<IndependentSettlement>(settlementRef);
+            if (settlement.StateRef != stateRef || !proposals.ContainsKey(settlement.ProposalRef))
+            {
+                throw new InvalidOperationException("Release independent settlement graph mismatch.");
+            }
+            independentSettlements.Add(settlementRef, settlement);
+        }
+
+        foreach (var requestRef in formalizationRequestRefs)
+        {
+            var request = store.Get<FormalizationRequest>(requestRef);
+            if (!independentSettlements.TryGetValue(request.SettlementRef, out var settlement)
+                || settlement.Outcome != ResearchOutcome.Proved
+                || request.StateRef != stateRef
+                || request.ProposalRef != settlement.ProposalRef)
+            {
+                throw new InvalidOperationException("Release formalization request is not bound to a proved independent settlement.");
+            }
+        }
+
+        var ledger = store.Get<IntuitionLedger>(ledgerRef);
+        if (ledger.StateRef != stateRef || ledger.AllocationRef != allocationRef)
+        {
+            throw new InvalidOperationException("Release ledger graph mismatch.");
+        }
+        foreach (var entry in ledger.Candidates)
+        {
+            if (!proposals.TryGetValue(entry.ProposalRef, out var proposal)
+                || proposal.CandidateEditRef != entry.CandidateEditRef
+                || !valuations.TryGetValue(entry.ValuationRef, out var valuation)
+                || valuation.ProposalRef != entry.ProposalRef
+                || valuation.Worth != entry.Worth
+                || !independentSettlements.TryGetValue(entry.SettlementRef, out var settlement)
+                || settlement.ProposalRef != entry.ProposalRef
+                || settlement.Outcome != entry.Outcome
+                || allocation.ParetoFront.Contains(entry.ValuationRef, StringComparer.Ordinal) != entry.OnParetoFront
+                || allocation.Dominated.Contains(entry.ValuationRef, StringComparer.Ordinal) != entry.Dominated
+                || allocation.Incomparable.Contains(entry.ValuationRef, StringComparer.Ordinal) != entry.Incomparable)
+            {
+                throw new InvalidOperationException("Release ledger entry does not mirror its proposal, valuation, allocation, or settlement graph.");
+            }
+        }
+        var ledgerSettlements = ledger.Candidates.Select(static entry => entry.SettlementRef).ToHashSet(StringComparer.Ordinal);
+        if (!ledgerSettlements.SetEquals(independentSettlementRefs))
+        {
+            throw new InvalidOperationException("Release independent settlements must exactly cover the ledger candidates.");
+        }
+        var ledgerRequests = ledger.Candidates
+            .Where(static entry => entry.FormalizationRequestRef is not null)
+            .Select(static entry => entry.FormalizationRequestRef!)
+            .ToHashSet(StringComparer.Ordinal);
+        if (!ledgerRequests.SetEquals(formalizationRequestRefs))
+        {
+            throw new InvalidOperationException("Release formalization requests must exactly match the proved ledger candidates.");
+        }
     }
 
     private static int Calibrate(ArtifactStore store, string valuationSetRef, IReadOnlyList<string> settlementRefs)
@@ -144,6 +253,9 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
             "allocation" => store.Get<IntuitionAllocation>(reference),
             "attempt" => store.Get<ResearchAttempt>(reference),
             "settlement" => store.Get<IntuitionSettlement>(reference),
+            "independent-settlement" => store.Get<IndependentSettlement>(reference),
+            "formalization-request" => store.Get<FormalizationRequest>(reference),
+            "ledger" => store.Get<IntuitionLedger>(reference),
             "release" => store.Get<IntuitionRelease>(reference),
             _ => throw new InvalidOperationException($"Unknown verify kind '{kind}'.")
         };
@@ -169,6 +281,9 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
 
     private static IReadOnlyList<string> Many(IReadOnlyDictionary<string, List<string>> options, string key) =>
         options.TryGetValue(key, out var values) ? values : Array.Empty<string>();
+
+    private static string? Optional(IReadOnlyDictionary<string, List<string>> options, string key) =>
+        options.TryGetValue(key, out var values) && values.Count == 1 ? values[0] : null;
 
     private static void WriteResult(object value) => Console.Write(Encoding.UTF8.GetString(CanonicalJson.Serialize(value)));
     private static int Fail(string message) { Console.Error.WriteLine(message); return 2; }

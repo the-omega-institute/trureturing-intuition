@@ -18,6 +18,9 @@ Main contracts:
 - `intuition-allocation.v1`
 - `research-attempt.v1`
 - `intuition-settlement.v1`
+- `independent-settlement.v1`
+- `formalization-request.v1`
+- `intuition-ledger.v1`
 - `intuition-release.v1`
 - `temporal-replay-case.v1`
 - `calibration-report.v1`

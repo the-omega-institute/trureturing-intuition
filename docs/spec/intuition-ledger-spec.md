@@ -17,6 +17,10 @@
     information in source features.
 12. Shadow mode selects no attempt and cannot execute. A future executable policy must still
     require an owner-authorization artifact.
+13. Independent settlement intake has no attempt reference and cannot be interpreted as work
+    selected by the shadow allocator.
+14. Refuted outcomes are retained in the content-addressed ledger with the same durability as
+    proved outcomes.
 
 ## Closed action kinds
 

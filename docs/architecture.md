@@ -5,7 +5,7 @@
 | Layer | Owns |
 |---|---|
 | `Trureturing.Truth` upstream | release integrity, truth graph wire, strict frozen proof DAG |
-| this repository | research-state freezing, typed proposals, review, vector valuation, allocation, attempt and settlement ledger |
+| this repository | research-state freezing, typed proposals, review, vector valuation, shadow allocation, attempt-bound legacy records, and independent settlement intake |
 | FKST substrate | event delivery, retry, locking, Lua runtime and process boundary |
 | repository-local Lua | event routing and invocation of this repository's CLI/agents |
 | independent verifier | proof, refutation, duplicate, wall or other settlement authority |
@@ -14,6 +14,10 @@ The repository accepts `truth-release-verification-receipt.v1`. It does not acce
 bundle as authority. The receipt binds the release digest, source commit/tree, truth graph artifact
 and strict truth-export artifact. The adapter that produces the receipt is outside this repository
 and must use the upstream verifier.
+
+The checked-in local example is a deliberately named mock exception for development only. Its
+adapter freezes a small source-bound node subset but performs no truth verification and carries an
+explicit non-authoritative caveat.
 
 ## Durable facts
 
@@ -37,3 +41,11 @@ For a current readout `C` and target `T`, a residual witness records a pair coll
 separated by `T`. A candidate may claim cuts only against a frozen residual universe. Covering all
 observed witnesses is called `finite-observed-cover`. `formal-cover` additionally requires an
 independent formal receipt and a universe declared `formal-complete`.
+
+## Independent settlement intake
+
+`intuition-settlement.v1` remains bound to `research-attempt.v1` and is forbidden in a
+`shadow-pareto-bootstrap-v1` release. `independent-settlement.v1` is a distinct intake record: it
+binds a frozen state and proposal directly, has an independent authority, and has no attempt or
+allocation field. This lets historical or externally produced mock outcomes calibrate intuition
+without converting shadow allocation into execution.

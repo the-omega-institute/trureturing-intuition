@@ -1,6 +1,10 @@
 local M = {}
 local core = require("core")
-M.spec = { consumes = { "shadow_cycle_complete", "settlement_registered" }, produces = { "intuition_release_ready" }, stall_window = "5m" }
+M.spec = {
+  consumes = { "shadow_cycle_complete", "settlement_registered", "independent_settlement_registered" },
+  produces = { "intuition_release_ready" },
+  stall_window = "5m",
+}
 function pipeline(event)
   local x = event.payload or {}
   if not x.state_ref or not x.proposal_set_ref or not x.critique_set_ref or not x.valuation_set_ref or not x.allocation_ref then
