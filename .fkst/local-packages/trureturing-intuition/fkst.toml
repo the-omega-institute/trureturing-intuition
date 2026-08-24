@@ -1,0 +1,9 @@
+kind = "package"
+name = "trureturing-intuition"
+persistence_class = "judgment_pipeline"
+
+[code]
+root = "."
+
+[lib_deps]
+libraries = []

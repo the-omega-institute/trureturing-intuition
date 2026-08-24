@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Trureturing.Intuition.ArchitectureTests</RootNamespace>
+    <AssemblyName>Trureturing.Intuition.ArchitectureTests</AssemblyName>
+  </PropertyGroup>
+</Project>
