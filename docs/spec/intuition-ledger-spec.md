@@ -24,6 +24,23 @@
     selected by the shadow allocator.
 14. Refuted outcomes are retained in the content-addressed ledger with the same durability as
     proved outcomes.
+15. One cycle freezes one coherent concept neighborhood around one target node. It contains 5-12
+    unique related nodes, bounded by `candidate_limit`, classified as direct prerequisite, direct
+    dependent or sibling lemma, and scoped to one declared module/domain.
+16. The neighborhood member set and candidate edit universe cover each other exactly. Every member
+    is a bridge whose endpoints are the target node and that member's related node.
+17. Every proposal repeats its candidate, neighborhood and target IDs, its two endpoint node IDs,
+    conjectured bridge and independent discovery ledger. A proposal batch is complete only when it
+    has exactly one proposal per frozen neighborhood member.
+18. The ledger repeats the state neighborhood grouping and each row's neighborhood/target binding,
+    making the cluster traceable without treating the cluster as a Lean proof unit.
+
+## Cycle granularity
+
+The atomic proof unit remains one Lean node and the atomic judgment remains one
+`intuition-proposal.v1`. The proposal department runs once per frozen neighborhood member and emits
+the whole 5-12 proposal cluster before review, vector valuation, and shadow Pareto analysis. No
+candidate in the cluster is selected for execution under `shadow-pareto-bootstrap-v1`.
 
 ## Closed action kinds
 

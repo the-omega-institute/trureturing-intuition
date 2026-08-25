@@ -14,6 +14,7 @@ public static void Validate(object artifact)
         switch (artifact)
         {
             case TruthReleaseVerificationReceipt value: Validate(value); break;
+            case IntakeEnvelope value: Validate(value); break;
             case IntuitionRunRequest value: Validate(value); break;
             case TargetInterface value: Validate(value); break;
             case ResidualWitness value: Validate(value); break;

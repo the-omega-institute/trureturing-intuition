@@ -10,6 +10,7 @@ function pipeline(event)
     repo_root = x.repo_root, run_id = x.run_id, state_ref = x.state_ref,
     proposal_set_ref = x.proposal_set_ref, critique_set_ref = x.critique_set_ref,
     valuation_set_ref = x.valuation_set_ref, allocation_ref = result.allocation_ref,
+    neighborhood_id = x.neighborhood_id, target_node_id = x.target_node_id,
   })
 end
 return M

@@ -111,7 +111,8 @@ public static class StateFactory
             request.ModelSnapshot,
             request.SelectionMode,
             ScalarizationAllowed: false,
-            BaseWriteAllowed: false);
+            BaseWriteAllowed: false,
+            request.Neighborhood);
     }
 }
 

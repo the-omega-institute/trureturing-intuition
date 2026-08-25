@@ -4,6 +4,8 @@ internal static partial class Cli
 {
     private const long ExampleRecordedAtUnix = LocalDevMockTruthAdapter.FrozenAtUnix + 3600;
     private const string ExampleAdvisory = "Advisory research ledger: every bridge is a conjecture paired with a mock independent outcome, not certified truth.";
+    private const string ExampleTargetNodeId = "D5/S0/Carrier/TraceConjugation.trace_conj";
+    private const string ExampleNeighborhoodId = "d5-trace-conjugation-neighborhood-v1";
 
     private sealed record ExampleCandidate(
         CandidateEdit Edit,
@@ -15,7 +17,8 @@ internal static partial class Cli
         WorthVector Worth,
         VerificationBudget PredictedCost,
         OutcomeDistribution PredictedOutcomes,
-        string? RequestedLemma);
+        string? RequestedLemma,
+        ConceptRelation Relation);
 
     private static int ExampleCycle(ArtifactStore store)
     {
@@ -23,8 +26,8 @@ internal static partial class Cli
         var nodeRefs = adapter.NodeRefs;
         var target = new TargetInterface(
             Schemas.TargetInterface,
-            "d5-carrier-bridge-example",
-            nodeRefs["D5/S0/Carrier/TraceConjugation.trace_conj"],
+            "d5-trace-conjugation-neighborhood",
+            nodeRefs[ExampleTargetNodeId],
             nodeRefs["D5/S0/Carrier/AlgebraicModel.golden_algebraic_model_spec"],
             adapter.ReleaseBindingRef,
             AdequacyMode.FiniteEnumerated,
@@ -38,6 +41,18 @@ internal static partial class Cli
             Array.Empty<string>(),
             null);
         var candidates = BuildExampleCandidates(nodeRefs, adapter.ReleaseBindingRef);
+        var neighborhood = new ConceptNeighborhood(
+            ExampleNeighborhoodId,
+            ExampleTargetNodeId,
+            nodeRefs[ExampleTargetNodeId],
+            "D5/S0/Carrier",
+            "golden-integer-algebra",
+            CandidateLimit: 12,
+            candidates.Select(candidate => new ConceptNeighborhoodMember(
+                candidate.Edit.CandidateId,
+                candidate.RightNodeId,
+                nodeRefs[candidate.RightNodeId],
+                candidate.Relation)).OrderBy(static member => member.CandidateId, StringComparer.Ordinal).ToArray());
         var envelope = new IntakeEnvelope(
             Schemas.IntakeEnvelope,
             "local-dev-d5-bridge-cycle-v1",
@@ -49,7 +64,8 @@ internal static partial class Cli
             new VerificationBudget(0, 0, 0, 0, 0, 0, 0),
             "independent-local-dev-mock-settlement-v1",
             adapter.ReleaseBindingRef,
-            "local-dev-mock");
+            "local-dev-mock",
+            neighborhood);
         var intake = IntakeRouter.Freeze(store, envelope, adapter.Receipt, target, universe, candidates.Select(candidate => candidate.Edit).ToArray());
         var candidateRefs = candidates.ToDictionary(candidate => candidate.Edit.CandidateId, candidate => store.Put(candidate.Edit), StringComparer.Ordinal);
 
@@ -60,6 +76,11 @@ internal static partial class Cli
             var proposal = new IntuitionProposal(
                 Schemas.Proposal,
                 "proposal-" + candidate.Edit.CandidateId,
+                candidate.Edit.CandidateId,
+                neighborhood.NeighborhoodId,
+                neighborhood.TargetNodeId,
+                new[] { candidate.LeftNodeId, candidate.RightNodeId }.Order(StringComparer.Ordinal).ToArray(),
+                candidate.Conjecture,
                 intake.StateRef,
                 candidateRefs[candidate.Edit.CandidateId],
                 "bridge",
@@ -179,12 +200,15 @@ internal static partial class Cli
             var valuationRef = valuationRefs[candidate.Edit.CandidateId];
             return new IntuitionLedgerEntry(
                 candidate.Edit.CandidateId,
+                neighborhood.NeighborhoodId,
+                neighborhood.TargetNodeId,
                 candidateRefs[candidate.Edit.CandidateId],
                 proposalRefs[candidate.Edit.CandidateId],
                 valuationRef,
                 new[] { candidate.LeftNodeId, candidate.RightNodeId }.Order(StringComparer.Ordinal).ToArray(),
                 new[] { nodeRefs[candidate.LeftNodeId], nodeRefs[candidate.RightNodeId] }.Order(StringComparer.Ordinal).ToArray(),
                 candidate.Conjecture,
+                store.Get<IntuitionProposal>(proposalRefs[candidate.Edit.CandidateId]).Discovery,
                 candidate.Worth,
                 pareto.ParetoFront.Contains(valuationRef, StringComparer.Ordinal),
                 pareto.Dominated.Contains(valuationRef, StringComparer.Ordinal),
@@ -197,6 +221,7 @@ internal static partial class Cli
             Schemas.Ledger,
             intake.StateRef,
             allocationRef,
+            neighborhood,
             ledgerEntries,
             calibration,
             ExampleAdvisory,
@@ -242,6 +267,8 @@ internal static partial class Cli
             ["independent_settlement_refs"] = independentSettlementRefs,
             ["intuition_release_ref"] = releaseRef,
             ["ledger_ref"] = ledgerRef,
+            ["neighborhood_id"] = neighborhood.NeighborhoodId,
+            ["neighborhood_target_node_id"] = neighborhood.TargetNodeId,
             ["receipt_ref"] = adapter.ReceiptRef,
             ["selected_for_execution"] = allocation.SelectedForExecution,
             ["state_ref"] = intake.StateRef
@@ -258,64 +285,108 @@ internal static partial class Cli
         return
         [
             Candidate(
-                "algebraic-trace-conjugation",
+                "algebraic-model-trace",
                 "D5/S0/Carrier/AlgebraicModel.golden_algebraic_model_spec",
-                "D5/S0/Carrier/TraceConjugation.trace_conj",
                 "The quotient model's coordinate formulas should expose trace invariance under its conjugation map as a reusable lemma.",
                 ResearchOutcome.Proved,
                 "Mock independent formalization located the same coordinate identity, trace(conj(a,b)) = 2a+b = trace(a,b).",
-                new WorthVector(Measured(.82), Measured(.91), Measured(.88), Measured(.94)),
+                new WorthVector(Measured(.92), Measured(.94), Measured(.91), Measured(.96)),
                 Cost(2, 1, 18, 8),
                 new OutcomeDistribution(.62, .08, .05, .05, .02, .15, .03),
-                "Expose trace_conj_from_golden_algebraic_model as a reusable lemma backed by the settled coordinate identity."),
+                "Expose trace_conj_from_golden_algebraic_model as a reusable lemma backed by the settled coordinate identity.",
+                ConceptRelation.DirectPrerequisite),
             Candidate(
-                "natural-to-integral-power-norm",
-                "D5/S0/Carrier/NormPowers.norm_pow",
-                "D5/S0/Carrier/Powers/IntegerPowerNorm.norm_phiUnit_zpow",
-                "Natural-power norm multiplicativity and the unit inverse law should combine into a uniform integral-power norm bridge for phiUnit.",
-                ResearchOutcome.Proved,
-                "Mock independent formalization split the integer exponent by sign and reused norm_pow plus the unit inverse law.",
-                new WorthVector(Measured(.73), Measured(.84), Measured(.79), Measured(.86)),
-                Cost(1, 2, 14, 5),
-                new OutcomeDistribution(.58, .1, .04, .08, .04, .13, .03),
-                "Package norm_phiUnit_zpow_from_norm_pow as a dependency-explicit bridge lemma."),
-            Candidate(
-                "critical-band-midline-factorization",
-                "D5/S0/Carrier/Powers/GoldenCriticalBandScaling.golden_critical_band_scaling",
-                "D5/S0/Carrier/Powers/GoldenMidlineFactorization.golden_midline_factorization",
-                "The critical-band midpoint containment should follow structurally from the golden midline reciprocal factorization alone.",
-                ResearchOutcome.Refuted,
-                "Mock independent formalization found no implication: factorization is an algebraic rewrite, while band containment needs separate order and positivity hypotheses.",
-                new WorthVector(Measured(.45), Measured(.36), Measured(.31), Measured(.42)),
-                Cost(2, 2, 22, 7),
-                new OutcomeDistribution(.25, .32, .08, .04, .03, .25, .03),
-                null),
-            Candidate(
-                "zsqrtd-image-principal-ideal",
-                "D5/S0/Carrier/PrincipalIdeal.golden_int_is_pid",
-                "D5/S0/Carrier/ZsqrtdImage.mem_range_toZsqrtd_iff",
-                "The parity characterization of the doubled-coordinate image may transport principal-ideal generators into an explicit Zsqrtd 5 normal form.",
+                "discriminant-trace-coordinate",
+                "D5/S0/Carrier/GoldenDiscriminant.golden_discriminant_spec",
+                "The discriminant-five identity may yield a trace-coordinate characterization for conjugate golden roots.",
                 ResearchOutcome.Open,
-                "Mock independent review left the bridge open: the image criterion is concrete, but generator transport and ideal compatibility were not formalized.",
-                new WorthVector(OpenMetric(), Measured(.39), OpenMetric(), Measured(.33)),
-                Cost(4, 4, 40, 15),
-                new OutcomeDistribution(.22, .12, .12, .04, .02, .44, .04),
-                null)
+                "Mock independent review found the shared quadratic coordinates plausible but did not close the coercion and root-order obligations.",
+                new WorthVector(OpenMetric(), Measured(.58), Measured(.47), Measured(.61)),
+                Cost(3, 2, 28, 10),
+                new OutcomeDistribution(.31, .13, .09, .04, .03, .36, .04),
+                null,
+                ConceptRelation.SiblingLemma),
+            Candidate(
+                "euclidean-trace-remainder",
+                "D5/S0/Carrier/Euclidean.golden_division",
+                "A canonical Euclidean remainder should be selectable using only a trace-normalized representative.",
+                ResearchOutcome.Refuted,
+                "Mock independent formalization produced equal-trace elements requiring different norm-decreasing quotients, refuting trace-only selection.",
+                new WorthVector(Measured(.42), Measured(.44), Measured(.36), Measured(.51)),
+                Cost(3, 2, 30, 9),
+                new OutcomeDistribution(.21, .39, .08, .03, .03, .22, .04),
+                null,
+                ConceptRelation.DirectDependent),
+            Candidate(
+                "integer-power-trace-unit",
+                "D5/S0/Carrier/Powers/IntegerPowerNorm.norm_phiUnit_zpow",
+                "Integral powers of phiUnit may admit a trace recurrence compatible with the settled norm control.",
+                ResearchOutcome.Open,
+                "Mock independent review identified the expected recurrence but left negative-exponent normalization open.",
+                new WorthVector(Measured(.69), Measured(.52), OpenMetric(), Measured(.57)),
+                Cost(4, 3, 36, 12),
+                new OutcomeDistribution(.33, .11, .1, .04, .02, .36, .04),
+                null,
+                ConceptRelation.SiblingLemma),
+            Candidate(
+                "midline-trace-scaling",
+                "D5/S0/Carrier/Powers/GoldenMidlineFactorization.golden_midline_factorization",
+                "Trace invariance alone should determine the reciprocal-square midline factorization under golden scaling.",
+                ResearchOutcome.Refuted,
+                "Mock independent formalization found trace invariance insufficient: the factorization additionally depends on multiplicative inverse identities.",
+                new WorthVector(Measured(.31), Measured(.29), Measured(.27), Measured(.34)),
+                Cost(3, 2, 31, 10),
+                new OutcomeDistribution(.18, .46, .07, .03, .03, .19, .04),
+                null,
+                ConceptRelation.SiblingLemma),
+            Candidate(
+                "norm-power-trace-recurrence",
+                "D5/S0/Carrier/NormPowers.norm_pow",
+                "Power multiplicativity of norm and conjugation-invariant trace should package a two-term recurrence for natural powers.",
+                ResearchOutcome.Proved,
+                "Mock independent formalization derived the recurrence from the quadratic characteristic identity and norm_pow.",
+                new WorthVector(Measured(.81), Measured(.86), Measured(.83), Measured(.89)),
+                Cost(2, 2, 20, 7),
+                new OutcomeDistribution(.59, .09, .05, .05, .03, .16, .03),
+                "Package trace_pow_recurrence_from_norm_pow with explicit frozen dependencies.",
+                ConceptRelation.SiblingLemma),
+            Candidate(
+                "principal-ideal-trace-generator",
+                "D5/S0/Carrier/PrincipalIdeal.golden_int_is_pid",
+                "Principal ideal generators may be normalized up to units by a trace-minimal representative.",
+                ResearchOutcome.Open,
+                "Mock independent review could not establish existence of a trace minimum across the full unit orbit.",
+                new WorthVector(OpenMetric(), Measured(.41), Measured(.38), OpenMetric()),
+                Cost(5, 4, 48, 16),
+                new OutcomeDistribution(.2, .15, .13, .04, .02, .42, .04),
+                null,
+                ConceptRelation.DirectDependent),
+            Candidate(
+                "zsqrtd-image-trace-parity",
+                "D5/S0/Carrier/ZsqrtdImage.mem_range_toZsqrtd_iff",
+                "The doubled-coordinate image criterion should make golden trace parity explicit in the Zsqrtd representation.",
+                ResearchOutcome.Proved,
+                "Mock independent formalization reduced trace parity to the existing doubled-coordinate membership congruence.",
+                new WorthVector(Measured(.76), Measured(.79), Measured(.74), Measured(.84)),
+                Cost(2, 1, 17, 6),
+                new OutcomeDistribution(.55, .1, .05, .06, .03, .18, .03),
+                "Expose trace_parity_iff_mem_range_toZsqrtd as a representation bridge.",
+                ConceptRelation.SiblingLemma)
         ];
 
         ExampleCandidate Candidate(
             string id,
-            string left,
-            string right,
+            string related,
             string conjecture,
             ResearchOutcome outcome,
             string finding,
             WorthVector worth,
             VerificationBudget cost,
             OutcomeDistribution distribution,
-            string? requestedLemma)
+            string? requestedLemma,
+            ConceptRelation relation)
         {
-            var endpointRefs = new[] { nodeRefs[left], nodeRefs[right] };
+            var endpointRefs = new[] { nodeRefs[ExampleTargetNodeId], nodeRefs[related] };
             var edit = new CandidateEdit(
                 Schemas.CandidateEdit,
                 id,
@@ -328,7 +399,7 @@ internal static partial class Cli
                 Array.Empty<string>(),
                 "Independent formalization fails to derive the requested bridge from the two frozen endpoint statements and explicit assumptions.",
                 "Independent settlement intake; no research-attempt path");
-            return new ExampleCandidate(edit, left, right, conjecture, outcome, finding, worth, cost, distribution, requestedLemma);
+            return new ExampleCandidate(edit, ExampleTargetNodeId, related, conjecture, outcome, finding, worth, cost, distribution, requestedLemma, relation);
         }
     }
 

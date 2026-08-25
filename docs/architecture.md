@@ -35,6 +35,19 @@ A candidate tracks three independent states:
 
 Novelty does not imply semantic growth. Semantic growth does not imply truth.
 
+## Concept neighborhood cycle
+
+The frozen state embeds one bounded `ConceptNeighborhood`: a target node, module/domain scope,
+candidate limit, and 5-12 typed members. Members are unique direct prerequisites, direct dependents,
+or structurally adjacent sibling lemmas. Intake validates that the candidate edit universe exactly
+covers these members and that every edit bridges the target ref to its declared related-node ref.
+
+The proposal department invokes one bridge seat per member and refuses partial or out-of-bounds
+batches. Proposal artifacts carry their endpoint node IDs and conjectured bridge directly; the
+ledger repeats the same neighborhood grouping and bindings. This changes cycle granularity only:
+the target and endpoints remain atomic frozen Lean nodes, and proposals remain independent typed
+judgments.
+
 ## Residual interpretation
 
 For a current readout `C` and target `T`, a residual witness records a pair collapsed by `C` but

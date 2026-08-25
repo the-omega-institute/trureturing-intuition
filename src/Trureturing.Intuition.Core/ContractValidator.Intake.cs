@@ -8,6 +8,69 @@ namespace Trureturing.Intuition.Core;
 
 public static partial class ContractValidator
 {
+    public static void Validate(IntakeEnvelope value)
+    {
+        RequireSchema(value.Schema, Schemas.IntakeEnvelope);
+        RequireIdentifier(value.RunId, nameof(value.RunId));
+        RequireNonEmpty(value.TruthReleaseReceiptPath, nameof(value.TruthReleaseReceiptPath));
+        RequireNonEmpty(value.TargetInterfacePath, nameof(value.TargetInterfacePath));
+        RequireNonEmpty(value.ResidualUniversePath, nameof(value.ResidualUniversePath));
+        if (value.CandidateEditPaths.Count is < 5 or > 12) throw new InvalidOperationException("A cycle must intake 5-12 neighborhood candidates.");
+        if (value.CandidateEditPaths.Distinct(StringComparer.Ordinal).Count() != value.CandidateEditPaths.Count)
+        {
+            throw new InvalidOperationException("Candidate edit paths must be unique.");
+        }
+        RequireNonEmpty(value.HistoryCutoff, nameof(value.HistoryCutoff));
+        ValidateBudget(value.Budget);
+        RequireNonEmpty(value.VerificationProtocol, nameof(value.VerificationProtocol));
+        RequireArtifactRef(value.ModelSnapshot, nameof(value.ModelSnapshot));
+        RequireNonEmpty(value.AgentMode, nameof(value.AgentMode));
+        Validate(value.Neighborhood);
+        if (value.CandidateEditPaths.Count != value.Neighborhood.Members.Count)
+        {
+            throw new InvalidOperationException("Intake paths must cover the complete concept neighborhood.");
+        }
+    }
+
+    public static void Validate(ConceptNeighborhood value)
+    {
+        RequireIdentifier(value.NeighborhoodId, nameof(value.NeighborhoodId));
+        RequireNonEmpty(value.TargetNodeId, nameof(value.TargetNodeId));
+        RequireArtifactRef(value.TargetNodeRef, nameof(value.TargetNodeRef));
+        RequireNonEmpty(value.ModuleId, nameof(value.ModuleId));
+        RequireNonEmpty(value.DomainId, nameof(value.DomainId));
+        if (value.CandidateLimit is < 5 or > 12) throw new InvalidOperationException("candidate_limit must be in [5,12].");
+        if (value.Members.Count is < 5 or > 12 || value.Members.Count > value.CandidateLimit)
+        {
+            throw new InvalidOperationException("A concept neighborhood must contain 5-12 members within candidate_limit.");
+        }
+
+        var previousCandidateId = string.Empty;
+        var relatedNodeIds = new HashSet<string>(StringComparer.Ordinal);
+        var relatedNodeRefs = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var member in value.Members)
+        {
+            RequireIdentifier(member.CandidateId, nameof(member.CandidateId));
+            if (previousCandidateId.Length != 0 && StringComparer.Ordinal.Compare(previousCandidateId, member.CandidateId) >= 0)
+            {
+                throw new InvalidOperationException("Neighborhood members must be strictly candidate-id sorted and unique.");
+            }
+            previousCandidateId = member.CandidateId;
+            RequireNonEmpty(member.RelatedNodeId, nameof(member.RelatedNodeId));
+            RequireArtifactRef(member.RelatedNodeRef, nameof(member.RelatedNodeRef));
+            if (!Enum.IsDefined(member.Relation)) throw new InvalidOperationException("Unknown concept neighborhood relation.");
+            if (string.Equals(member.RelatedNodeId, value.TargetNodeId, StringComparison.Ordinal)
+                || string.Equals(member.RelatedNodeRef, value.TargetNodeRef, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("A neighborhood member must be distinct from the target node.");
+            }
+            if (!relatedNodeIds.Add(member.RelatedNodeId) || !relatedNodeRefs.Add(member.RelatedNodeRef))
+            {
+                throw new InvalidOperationException("Neighborhood related nodes must be unique.");
+            }
+        }
+    }
+
 public static void Validate(TruthReleaseVerificationReceipt value)
     {
         RequireSchema(value.Schema, Schemas.TruthReceipt);
@@ -37,6 +100,11 @@ public static void Validate(TruthReleaseVerificationReceipt value)
         RequireNonEmpty(value.VerificationProtocol, nameof(value.VerificationProtocol));
         RequireArtifactRef(value.ModelSnapshot, nameof(value.ModelSnapshot));
         if (value.SelectionMode != "shadow-pareto-bootstrap-v1") throw new InvalidOperationException("Only shadow-pareto-bootstrap-v1 is allowed in v1.");
+        Validate(value.Neighborhood);
+        if (value.CandidateUniverse.Count != value.Neighborhood.Members.Count)
+        {
+            throw new InvalidOperationException("Candidate universe must cover the complete concept neighborhood.");
+        }
     }
 
     public static void Validate(TargetInterface value)
@@ -150,5 +218,10 @@ public static void Validate(TruthReleaseVerificationReceipt value)
         if (value.SelectionMode != "shadow-pareto-bootstrap-v1") throw new InvalidOperationException("Unexpected selection mode.");
         if (value.ScalarizationAllowed) throw new InvalidOperationException("Scalarization is forbidden in v1.");
         if (value.BaseWriteAllowed) throw new InvalidOperationException("Base writes are forbidden.");
+        Validate(value.Neighborhood);
+        if (value.CandidateUniverse.Count != value.Neighborhood.Members.Count)
+        {
+            throw new InvalidOperationException("Frozen candidate universe must cover the complete concept neighborhood.");
+        }
     }
 }
