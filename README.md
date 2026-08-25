@@ -3,8 +3,8 @@
 `trureturing-intuition` is the read-only structural-intuition organ for the TrueTurning ecosystem.
 It consumes a verification receipt issued by the upstream `Trureturing.Truth` boundary, freezes a
 research state, proposes typed graph edits, reviews and values them, allocates only in shadow mode,
-records independently settled outcomes, and publishes a content-addressed intuition release for
-Pages and Paper.
+records independently settled outcomes, and publishes content-addressed data artifacts for
+downstream consumers. Visualization and Pages deployment live in `trureturing-pages`.
 
 The organ does **not** parse the truth graph, replay the Frozen Ledger, validate the proof DAG, write
 base truth, or own deployment/engine composition. Those authorities remain upstream or in the
@@ -62,16 +62,18 @@ dotnet run --project tests/Trureturing.Intuition.ArchitectureTests -c Release
 
 ## Complete local example
 
-Run the deterministic generate, settle, write-back, ledger, and Pages example with:
+Run the deterministic generate, settle, write-back, and ledger example with:
 
 ```bash
 dotnet run --project src/Trureturing.Intuition.Cli -c Release -- \
-  example-cycle --root artifacts --site site
+  example-cycle --root artifacts
 ```
 
 This command uses the explicitly non-authoritative local dev mock receipt adapter. It never invokes
 the attempt path, selects nothing for execution, and never pushes a formalization request to the
-base truth repository. See [the example cycle notes](docs/example-cycle.md).
+base truth repository. It writes candidate edits, WorthVectors, allocation, independent
+settlements, formalization requests, the intuition ledger, and the intuition release to the
+content-addressed store under `artifacts/`. See [the example cycle notes](docs/example-cycle.md).
 
 FKST package test and conformance are run against the exact substrate commit recorded in
 `.github/workflows/ci.yml`.

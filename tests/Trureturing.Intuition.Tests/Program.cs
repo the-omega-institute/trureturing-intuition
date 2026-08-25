@@ -304,8 +304,7 @@ static void ExampleCycleEndToEnd()
 {
     using var temp = new TempDirectory();
     var artifacts = System.IO.Path.Combine(temp.Path, "artifacts");
-    var site = System.IO.Path.Combine(temp.Path, "site");
-    Assert.Equal(0, Cli.RunAsync(new[] { "example-cycle", "--root", artifacts, "--site", site }).GetAwaiter().GetResult());
+    Assert.Equal(0, Cli.RunAsync(new[] { "example-cycle", "--root", artifacts }).GetAwaiter().GetResult());
 
     var store = new ArtifactStore(artifacts);
     var artifactPaths = Directory.EnumerateFiles(artifacts, "*.json", SearchOption.AllDirectories).ToArray();
@@ -315,6 +314,8 @@ static void ExampleCycleEndToEnd()
         path => path,
         StringComparer.Ordinal);
     var releasePath = schemaPaths.Single(pair => pair.Key.StartsWith(Schemas.Release + ":", StringComparison.Ordinal)).Value;
+    Assert.Equal(4, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.CandidateEdit + ":", StringComparison.Ordinal)));
+    Assert.Equal(4, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.Valuation + ":", StringComparison.Ordinal)));
     var releaseRef = "sha256:" + System.IO.Path.GetFileNameWithoutExtension(releasePath);
     var release = store.Get<IntuitionRelease>(releaseRef);
     Assert.Equal(0, release.AttemptRefs.Count);
@@ -352,7 +353,10 @@ static void ExampleCycleEndToEnd()
     Assert.Equal(1, ledger.Calibration.RefutedCount);
     Assert.Equal(1, ledger.Calibration.OpenCount);
     Assert.Equal(2.0 / 3.0, ledger.Calibration.HitRate);
-    Assert.True(File.Exists(System.IO.Path.Combine(site, "index.html")));
+    foreach (var candidate in ledger.Candidates)
+    {
+        Assert.Equal(candidate.Worth, store.Get<IntuitionValuation>(candidate.ValuationRef).Worth);
+    }
     Assert.True(!schemaPaths.Keys.Any(key => key.StartsWith(Schemas.Attempt + ":", StringComparison.Ordinal)));
 }
 

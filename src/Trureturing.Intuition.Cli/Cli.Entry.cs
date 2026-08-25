@@ -29,7 +29,7 @@ public static Task<int> RunAsync(string[] args)
                 "calibrate" => Calibrate(store, Required(options, "valuation-set-ref"), Many(options, "settlement-ref")),
                 "calibrate-independent" => CalibrateIndependent(store, Required(options, "independent-settlement-ref")),
                 "verify" => Verify(store, Required(options, "kind"), Required(options, "ref")),
-                "example-cycle" => ExampleCycle(store, Required(options, "site")),
+                "example-cycle" => ExampleCycle(store),
                 _ => Fail($"unknown command '{command}'")
             });
         }
