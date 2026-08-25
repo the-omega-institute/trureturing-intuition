@@ -8,13 +8,52 @@ private static int ProposalSet(ArtifactStore store, string stateRef, IReadOnlyLi
     {
         var state = store.Get<IntuitionState>(stateRef);
         var allowed = state.CandidateUniverse.ToHashSet(StringComparer.Ordinal);
+        var neighborhoodMembers = state.Neighborhood.Members.ToDictionary(static member => member.CandidateId, StringComparer.Ordinal);
         var references = new List<string>();
+        var seenCandidateIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var input in inputs)
         {
             var proposal = CanonicalJson.DeserializeStrict<IntuitionProposal>(File.ReadAllBytes(input));
             if (proposal.StateRef != stateRef) throw new InvalidOperationException("Proposal state_ref mismatch.");
             if (!allowed.Contains(proposal.CandidateEditRef)) throw new InvalidOperationException("Proposal candidate is outside frozen candidate universe.");
+            if (!string.Equals(proposal.NeighborhoodId, state.Neighborhood.NeighborhoodId, StringComparison.Ordinal)
+                || !string.Equals(proposal.TargetNodeId, state.Neighborhood.TargetNodeId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Proposal neighborhood/target binding does not match frozen state.");
+            }
+            if (!neighborhoodMembers.TryGetValue(proposal.CandidateId, out var member))
+            {
+                throw new InvalidOperationException("Proposal candidate_id is outside the frozen neighborhood.");
+            }
+            var candidateEdit = store.Get<CandidateEdit>(proposal.CandidateEditRef);
+            if (!string.Equals(candidateEdit.CandidateId, proposal.CandidateId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Proposal candidate_id does not match its candidate edit.");
+            }
+            var expectedEndpointIds = new[] { state.Neighborhood.TargetNodeId, member.RelatedNodeId }.Order(StringComparer.Ordinal);
+            if (!proposal.EndpointNodeIds.SequenceEqual(expectedEndpointIds, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException("Proposal endpoints do not match its frozen neighborhood member.");
+            }
+            var expectedEndpointRefs = new[] { state.Neighborhood.TargetNodeRef, member.RelatedNodeRef }.Order(StringComparer.Ordinal).ToArray();
+            if (!candidateEdit.Inputs.Concat(candidateEdit.Outputs).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).SequenceEqual(expectedEndpointRefs, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException("Proposal candidate edit refs do not match its frozen neighborhood endpoints.");
+            }
+            if (!expectedEndpointRefs.All(reference => proposal.EvidenceRefs.Contains(reference, StringComparer.Ordinal)))
+            {
+                throw new InvalidOperationException("Proposal evidence must include both frozen endpoint artifacts.");
+            }
+            if (!string.Equals(proposal.ConjecturedBridge, candidateEdit.RepresentationMap, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Proposal conjectured_bridge does not match its candidate edit representation map.");
+            }
+            if (!seenCandidateIds.Add(proposal.CandidateId)) throw new InvalidOperationException("Neighborhood contains duplicate proposal candidate_id.");
             references.Add(store.Put(proposal));
+        }
+        if (seenCandidateIds.Count != neighborhoodMembers.Count)
+        {
+            throw new InvalidOperationException("Proposal batch must contain one bridge for every neighborhood member.");
         }
         var sorted = references.Order(StringComparer.Ordinal).Distinct(StringComparer.Ordinal).ToArray();
         var setRef = store.Put(new IntuitionProposalSet(Schemas.ProposalSet, stateRef, sorted));

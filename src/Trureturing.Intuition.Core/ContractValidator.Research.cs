@@ -8,10 +8,20 @@ namespace Trureturing.Intuition.Core;
 
 public static partial class ContractValidator
 {
-public static void Validate(IntuitionProposal value)
+    public static void Validate(IntuitionProposal value)
     {
         RequireSchema(value.Schema, Schemas.Proposal);
         RequireIdentifier(value.ProposalId, nameof(value.ProposalId));
+        RequireIdentifier(value.CandidateId, nameof(value.CandidateId));
+        RequireIdentifier(value.NeighborhoodId, nameof(value.NeighborhoodId));
+        RequireNonEmpty(value.TargetNodeId, nameof(value.TargetNodeId));
+        if (value.EndpointNodeIds.Count != 2) throw new InvalidOperationException("A bridge proposal requires exactly two endpoint node ids.");
+        RequireSortedUniqueStrings(value.EndpointNodeIds, nameof(value.EndpointNodeIds));
+        if (!value.EndpointNodeIds.Contains(value.TargetNodeId, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException("A neighborhood bridge must include its target node endpoint.");
+        }
+        RequireNonEmpty(value.ConjecturedBridge, nameof(value.ConjecturedBridge));
         RequireArtifactRef(value.StateRef, nameof(value.StateRef));
         RequireArtifactRef(value.CandidateEditRef, nameof(value.CandidateEditRef));
         RequireNonEmpty(value.ProposerSeat, nameof(value.ProposerSeat));

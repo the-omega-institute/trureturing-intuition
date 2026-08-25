@@ -17,6 +17,7 @@ The operational definition is:
 ```text
 intuition = an amortized policy over past independently settled research trajectories
 proposal  = a typed, falsifiable candidate edit to a frozen knowledge state
+cycle     = one bounded, coherent neighborhood of 5-12 target-relative bridge candidates
 value     = a vector of evidence-bound predictions, never an implicit scalar
 learning  = calibration between frozen predictions and independent settlement
 ```
@@ -34,7 +35,8 @@ base_write     = forbidden
 ```text
 verified truth-release receipt
   -> frozen intuition state
-  -> proposal seats
+  -> bounded target concept neighborhood
+  -> one typed bridge proposal per related concept
   -> adversarial review seats
   -> vector valuation
   -> shadow Pareto allocation
@@ -48,6 +50,12 @@ separately versioned executable policy.
 Independently observed research outcomes use a separate `independent-settlement.v1` intake. They
 do not contain an attempt reference and do not represent work selected or executed by the shadow
 allocator.
+
+Each frozen state groups one target node with 5-12 unique direct prerequisites, direct dependents,
+or structurally adjacent sibling lemmas from one declared module/domain. The target remains one
+atomic Lean node; the complete neighborhood is the cycle unit. Every `intuition-proposal.v1`
+repeats its neighborhood ID, target node ID, two endpoint node IDs, conjectured bridge, and three
+discovery statuses so a candidate remains self-describing outside the batch.
 
 The responsibilities are expressed as FKST departments. An agent is a short-lived FKST Person
 spawned by a department; it is not a long-lived authority and it never stores business truth.

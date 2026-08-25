@@ -1,8 +1,11 @@
 # Local example research cycle
 
-The checked-in example runs all three intuition mechanisms over four bridge conjectures and ten
-frozen D5 carrier nodes. It is deterministic and uses the production CLI, Core contracts,
-content-addressed store, intake router, and Pareto analyzer:
+The checked-in example runs all three intuition mechanisms over one bounded neighborhood of eight
+bridge conjectures around the frozen target
+`D5/S0/Carrier/TraceConjugation.trace_conj`. The members include its direct prerequisite and
+dependents plus structurally adjacent sibling lemmas in the D5 carrier domain. It is deterministic
+and uses the production CLI, Core contracts, content-addressed store, intake router, and Pareto
+analyzer:
 
 ```bash
 dotnet build Trureturing.Intuition.slnx -c Release
@@ -20,16 +23,20 @@ explicitly.
 
 The example's stable root artifacts are:
 
-- intuition release: `sha256:7436bcc9e9134f0be2a31e499844ddb34f91959cfadad7a31a68e727e4817216`;
-- intuition ledger: `sha256:31a4f6b0e5c3d5e675f1bfe453e434e3a168443c4bfceaa7d433a432f299409a`;
-- shadow allocation: `sha256:968a25af3496479e0d37055f8d323cde964d06f5ddd0c7feb12235ffc9ee52a8`.
+- intuition release: `sha256:bbe42313fbcb56c85a61994a08ca281d23720b943afef067f2c68b363de66ddc`;
+- intuition state with neighborhood grouping: `sha256:247bcf30792b88d83516583bbb44efccc71c7ee49834064b6648b5b850b05eff`;
+- intuition ledger with the same grouping: `sha256:688ff05b222ee924877bda707ea6ff174c25ae36b1d1bd443a859fd0fab4dda7`;
+- example typed proposal: `sha256:52b446e7f2bd20f98aedc93992087f5f90692a7be922f70933133ce2b23ae28b`;
+- shadow allocation over all eight WorthVectors: `sha256:31e1feb2957c4b341024e8e35b5509db0b46fb1e180f54966bca2b9469049f8a`.
 
 The allocation records an empty `selected_for_execution` array. No `research-attempt.v1` artifact
-is generated. The two proved, one refuted, and one open outcomes enter through
+is generated. The three proved, two refuted, and three open outcomes enter through
 `independent-settlement.v1`, which has no attempt reference. Only the proved outcomes produce
 `formalization-request.v1` artifacts, and those artifacts require `mock_write_back: true` and
 `push_allowed: false`.
 
-All cycle outputs remain canonical JSON in the content-addressed store under `artifacts/`. The CLI
-prints the candidate edit, allocation, independent settlement, formalization request, ledger, and
-release references for downstream data consumers. Visualization belongs in `trureturing-pages`.
+Every candidate has its own `WorthVector`; the shadow Pareto front is computed over the complete
+eight-proposal cluster. All cycle outputs remain canonical JSON in the content-addressed store under
+`artifacts/`. The CLI prints the neighborhood ID and target alongside candidate edit, allocation,
+independent settlement, formalization request, ledger, and release references for downstream data
+consumers. Visualization belongs in `trureturing-pages`.

@@ -7,6 +7,9 @@ var tests = new (string Name, Action Run)[]
     ("duplicate JSON property rejected", DuplicatePropertyRejected),
     ("candidate edit self-cycle rejected", CandidateSelfCycleRejected),
     ("candidate edit set cycle rejected", CandidateSetCycleRejected),
+    ("concept neighborhood bounds and uniqueness enforced", ConceptNeighborhoodBounds),
+    ("proposal carries its typed neighborhood bridge", ProposalCarriesNeighborhoodBridge),
+    ("proposal batch covers the complete neighborhood", ProposalBatchCoversNeighborhood),
     ("open worth dimension cannot carry a value", OpenMetricCannotCarryValue),
     ("shadow allocation selects nothing", ShadowAllocationSelectsNothing),
     ("Pareto dominance respects vector cost", ParetoDominance),
@@ -42,6 +45,34 @@ static MetricEvidence Measured(double value, char receipt) => new(MetricStatus.M
 static MetricEvidence Open() => new(MetricStatus.Open, null, null);
 static WorthVector Worth(double n, double d, double s, double r) => new(Measured(n, 'a'), Measured(d, 'b'), Measured(s, 'c'), Measured(r, 'd'));
 static OutcomeDistribution Distribution() => new(.4, .2, .1, .1, .05, .1, .05);
+static ConceptNeighborhood Neighborhood() => new(
+    "test-neighborhood",
+    "node-target",
+    Hash('0'),
+    "Test/Module",
+    "test-domain",
+    8,
+    Enumerable.Range(0, 5).Select(index => new ConceptNeighborhoodMember(
+        "candidate-" + index,
+        "node-related-" + index,
+        Hash((char)('1' + index)),
+        index == 0 ? ConceptRelation.DirectPrerequisite : ConceptRelation.SiblingLemma)).ToArray());
+static IntuitionProposal Proposal(string proposalId, string stateRef, string candidateId = "candidate-0", string? candidateEditRef = null) => new(
+    Schemas.Proposal,
+    proposalId,
+    candidateId,
+    "test-neighborhood",
+    "node-target",
+    new[] { "node-related-0", "node-target" },
+    "A typed conjectured bridge.",
+    stateRef,
+    candidateEditRef ?? Hash('a'),
+    "seat",
+    Array.Empty<string>(),
+    new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted),
+    Hash('2'),
+    "falsifier",
+    1);
 
 static void ArtifactRoundtrip()
 {
@@ -86,6 +117,71 @@ static void CandidateSetCycleRejected()
     var first = new CandidateEdit(Schemas.CandidateEdit, "first", CandidateKind.Bridge, new[] { Hash('a') }, new[] { Hash('b') }, "map", Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), "falsifier", "Lean");
     var second = new CandidateEdit(Schemas.CandidateEdit, "second", CandidateKind.Bridge, new[] { Hash('b') }, new[] { Hash('a') }, "map", Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), "falsifier", "Lean");
     Assert.Throws(() => ContractValidator.ValidateCandidateEditSet(new[] { first, second }));
+}
+
+static void ConceptNeighborhoodBounds()
+{
+    var neighborhood = Neighborhood();
+    ContractValidator.Validate(neighborhood);
+    Assert.Throws(() => ContractValidator.Validate(neighborhood with { Members = neighborhood.Members.Take(4).ToArray() }));
+    Assert.Throws(() => ContractValidator.Validate(neighborhood with { CandidateLimit = 4 }));
+    Assert.Throws(() => ContractValidator.Validate(neighborhood with
+    {
+        Members = neighborhood.Members.Select((member, index) => index == 4 ? member with { RelatedNodeRef = neighborhood.Members[0].RelatedNodeRef } : member).ToArray()
+    }));
+}
+
+static void ProposalCarriesNeighborhoodBridge()
+{
+    var proposal = Proposal("typed-bridge", Hash('9'));
+    ContractValidator.Validate(proposal);
+    Assert.Throws(() => ContractValidator.Validate(proposal with { EndpointNodeIds = new[] { "node-related-0", "node-related-1" } }));
+    Assert.Throws(() => ContractValidator.Validate(proposal with { ConjecturedBridge = "" }));
+}
+
+static void ProposalBatchCoversNeighborhood()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    var neighborhood = Neighborhood();
+    var candidateRefs = new Dictionary<string, string>(StringComparer.Ordinal);
+    foreach (var member in neighborhood.Members)
+    {
+        var candidate = new CandidateEdit(
+            Schemas.CandidateEdit,
+            member.CandidateId,
+            CandidateKind.Bridge,
+            new[] { neighborhood.TargetNodeRef },
+            new[] { member.RelatedNodeRef },
+            "bridge-" + member.CandidateId,
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            "falsifier",
+            "independent verification");
+        candidateRefs.Add(member.CandidateId, store.Put(candidate));
+    }
+    var state = State() with { CandidateUniverse = candidateRefs.Values.Order(StringComparer.Ordinal).ToArray() };
+    var stateRef = store.Put(state);
+    var inputPaths = new List<string>();
+    foreach (var member in neighborhood.Members)
+    {
+        var proposal = Proposal("proposal-" + member.CandidateId, stateRef, member.CandidateId, candidateRefs[member.CandidateId]) with
+        {
+            EndpointNodeIds = new[] { neighborhood.TargetNodeId, member.RelatedNodeId }.Order(StringComparer.Ordinal).ToArray(),
+            ConjecturedBridge = "bridge-" + member.CandidateId,
+            EvidenceRefs = new[] { neighborhood.TargetNodeRef, member.RelatedNodeRef }.Order(StringComparer.Ordinal).ToArray()
+        };
+        var path = System.IO.Path.Combine(temp.Path, member.CandidateId + ".json");
+        File.WriteAllBytes(path, CanonicalJson.Serialize(proposal));
+        inputPaths.Add(path);
+    }
+
+    string[] Args(IEnumerable<string> inputs) => new[] { "proposal-set", "--root", temp.Path, "--state-ref", stateRef }
+        .Concat(inputs.SelectMany(static path => new[] { "--input", path })).ToArray();
+    Assert.Equal(2, Cli.RunAsync(Args(inputPaths.Take(4))).GetAwaiter().GetResult());
+    Assert.Equal(0, Cli.RunAsync(Args(inputPaths)).GetAwaiter().GetResult());
+    Assert.Equal(5, store.FindBySchema<IntuitionProposalSet>(Schemas.ProposalSet).Single().Value.ProposalRefs.Count);
 }
 
 static void ShadowAllocationSelectsNothing()
@@ -189,8 +285,8 @@ static void IndependentSettlementCalibrationHistory()
     using var temp = new TempDirectory();
     var store = new ArtifactStore(temp.Path);
     var stateRef = store.Put(State());
-    var firstProposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "first", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
-    var secondProposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "second", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
+    var firstProposalRef = store.Put(Proposal("first", stateRef));
+    var secondProposalRef = store.Put(Proposal("second", stateRef));
     var firstValuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, firstProposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));
     var secondValuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, secondProposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));
     var valuationRefs = new[] { firstValuationRef, secondValuationRef }.Order(StringComparer.Ordinal).ToArray();
@@ -218,7 +314,7 @@ static void InfrastructureFailureHasNoGain()
 static void StateBindsReceipt()
 {
     var receipt = new TruthReleaseVerificationReceipt(Schemas.TruthReceipt, Hash('1'), Git('a'), Git('b'), Hash('2'), Hash('3'), "Trureturing.Truth", 1);
-    var request = new IntuitionRunRequest(Schemas.RunRequest, "run", Hash('4'), Hash('5'), Hash('6'), new[] { Hash('7') }, "cutoff", Budget(), "protocol", Hash('8'), "shadow-pareto-bootstrap-v1");
+    var request = new IntuitionRunRequest(Schemas.RunRequest, "run", Hash('4'), Hash('5'), Hash('6'), new[] { Hash('a'), Hash('b'), Hash('c'), Hash('d'), Hash('e') }, "cutoff", Budget(), "protocol", Hash('8'), "shadow-pareto-bootstrap-v1", Neighborhood());
     var state = StateFactory.Create(request, receipt, Hash('4'));
     Assert.Equal(receipt.ReleaseDigest, state.ReleaseDigest);
     Assert.True(!state.BaseWriteAllowed);
@@ -257,7 +353,7 @@ static void StoreBlocksBaseWriteAttempt()
 }
 
 static IntuitionState State() =>
-    new(Schemas.State, "run", Hash('4'), Hash('5'), Git('a'), Git('b'), Hash('6'), Hash('7'), Hash('8'), Hash('9'), new[] { Hash('a') }, Hash('c'), "cutoff", Budget(), "protocol", Hash('d'), "shadow-pareto-bootstrap-v1", false, false);
+    new(Schemas.State, "run", Hash('4'), Hash('5'), Git('a'), Git('b'), Hash('6'), Hash('7'), Hash('8'), Hash('9'), new[] { Hash('a'), Hash('b'), Hash('c'), Hash('d'), Hash('e') }, Hash('f'), "cutoff", Budget(), "protocol", Hash('d'), "shadow-pareto-bootstrap-v1", false, false, Neighborhood());
 
 static int StoredArtifactCount(string root) => Directory.EnumerateFiles(root, "*.json", SearchOption.AllDirectories).Count();
 
@@ -277,7 +373,7 @@ static void CliSafetyInvariants()
     var store = new ArtifactStore(temp.Path);
     var state = State();
     var stateRef = store.Put(state);
-    var proposalRef = store.Put(new IntuitionProposal(Schemas.Proposal, "proposal", stateRef, Hash('a'), "seat", Array.Empty<string>(), new DiscoveryLedger(CatalogStatus.Unsearched, SemanticStatus.Unknown, CertificationStatus.Unattempted), Hash('2'), "falsifier", 1));
+    var proposalRef = store.Put(Proposal("proposal", stateRef));
     var valuationRef = store.Put(new IntuitionValuation(Schemas.Valuation, proposalRef, Worth(1, 1, 1, 1), Budget(), Distribution(), 0, 0, .1, Array.Empty<string>(), "valuer", 1));
     var allocationRef = store.Put(new IntuitionAllocation(Schemas.Allocation, stateRef, Hash('3'), "shadow-pareto-bootstrap-v1", new[] { valuationRef }, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), 1));
     var authorizationRef = store.Put(new OwnerAuthorization(Schemas.Authorization, allocationRef, new[] { proposalRef }, "owner", "test", 1));
@@ -308,25 +404,31 @@ static void ExampleCycleEndToEnd()
 
     var store = new ArtifactStore(artifacts);
     var artifactPaths = Directory.EnumerateFiles(artifacts, "*.json", SearchOption.AllDirectories).ToArray();
-    Assert.True(artifactPaths.Length >= 40);
+    Assert.True(artifactPaths.Length >= 60);
     var schemaPaths = artifactPaths.ToDictionary(
         path => System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(path)).RootElement.GetProperty("schema").GetString() + ":" + path,
         path => path,
         StringComparer.Ordinal);
     var releasePath = schemaPaths.Single(pair => pair.Key.StartsWith(Schemas.Release + ":", StringComparison.Ordinal)).Value;
-    Assert.Equal(4, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.CandidateEdit + ":", StringComparison.Ordinal)));
-    Assert.Equal(4, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.Valuation + ":", StringComparison.Ordinal)));
+    Assert.Equal(8, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.CandidateEdit + ":", StringComparison.Ordinal)));
+    Assert.Equal(8, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.Proposal + ":", StringComparison.Ordinal)));
+    Assert.Equal(8, schemaPaths.Keys.Count(key => key.StartsWith(Schemas.Valuation + ":", StringComparison.Ordinal)));
     var releaseRef = "sha256:" + System.IO.Path.GetFileNameWithoutExtension(releasePath);
     var release = store.Get<IntuitionRelease>(releaseRef);
     Assert.Equal(0, release.AttemptRefs.Count);
     Assert.Equal(0, release.SettlementRefs.Count);
-    Assert.Equal(4, release.IndependentSettlementRefs.Count);
-    Assert.Equal(2, release.FormalizationRequestRefs.Count);
+    Assert.Equal(8, release.IndependentSettlementRefs.Count);
+    Assert.Equal(3, release.FormalizationRequestRefs.Count);
 
     var state = store.Get<IntuitionState>(release.StateRef);
     Assert.Equal("shadow-pareto-bootstrap-v1", state.SelectionMode);
     Assert.True(!state.ScalarizationAllowed);
     Assert.True(!state.BaseWriteAllowed);
+    Assert.Equal("d5-trace-conjugation-neighborhood-v1", state.Neighborhood.NeighborhoodId);
+    Assert.Equal(8, state.Neighborhood.Members.Count);
+    Assert.True(state.Neighborhood.Members.Any(member => member.Relation == ConceptRelation.DirectPrerequisite));
+    Assert.True(state.Neighborhood.Members.Any(member => member.Relation == ConceptRelation.DirectDependent));
+    Assert.True(state.Neighborhood.Members.Any(member => member.Relation == ConceptRelation.SiblingLemma));
     var allocation = store.Get<IntuitionAllocation>(release.AllocationRef);
     Assert.Equal(0, allocation.SelectedForExecution.Count);
     Assert.True(allocation.ParetoFront.Count > 0);
@@ -336,9 +438,9 @@ static void ExampleCycleEndToEnd()
         .Select(reference => store.Get<IndependentSettlement>(reference).Outcome)
         .GroupBy(outcome => outcome)
         .ToDictionary(group => group.Key, group => group.Count());
-    Assert.Equal(2, outcomes[ResearchOutcome.Proved]);
-    Assert.Equal(1, outcomes[ResearchOutcome.Refuted]);
-    Assert.Equal(1, outcomes[ResearchOutcome.Open]);
+    Assert.Equal(3, outcomes[ResearchOutcome.Proved]);
+    Assert.Equal(2, outcomes[ResearchOutcome.Refuted]);
+    Assert.Equal(3, outcomes[ResearchOutcome.Open]);
     foreach (var requestRef in release.FormalizationRequestRefs)
     {
         var request = store.Get<FormalizationRequest>(requestRef);
@@ -348,13 +450,22 @@ static void ExampleCycleEndToEnd()
     }
 
     var ledger = store.Get<IntuitionLedger>(release.LedgerRef);
-    Assert.Equal(4, ledger.Candidates.Count);
-    Assert.Equal(2, ledger.Calibration.ProvedCount);
-    Assert.Equal(1, ledger.Calibration.RefutedCount);
-    Assert.Equal(1, ledger.Calibration.OpenCount);
-    Assert.Equal(2.0 / 3.0, ledger.Calibration.HitRate);
+    Assert.Equal(state.Neighborhood.NeighborhoodId, ledger.Neighborhood.NeighborhoodId);
+    Assert.Equal(state.Neighborhood.TargetNodeId, ledger.Neighborhood.TargetNodeId);
+    Assert.SequenceEqual(state.Neighborhood.Members, ledger.Neighborhood.Members);
+    Assert.Equal(8, ledger.Candidates.Count);
+    Assert.Equal(3, ledger.Calibration.ProvedCount);
+    Assert.Equal(2, ledger.Calibration.RefutedCount);
+    Assert.Equal(3, ledger.Calibration.OpenCount);
+    Assert.Equal(3.0 / 5.0, ledger.Calibration.HitRate);
     foreach (var candidate in ledger.Candidates)
     {
+        var proposal = store.Get<IntuitionProposal>(candidate.ProposalRef);
+        Assert.Equal(state.Neighborhood.NeighborhoodId, proposal.NeighborhoodId);
+        Assert.Equal(state.Neighborhood.TargetNodeId, proposal.TargetNodeId);
+        Assert.SequenceEqual(candidate.EndpointNodeIds, proposal.EndpointNodeIds);
+        Assert.Equal(candidate.ConjecturedBridge, proposal.ConjecturedBridge);
+        Assert.Equal(candidate.Discovery, proposal.Discovery);
         Assert.Equal(candidate.Worth, store.Get<IntuitionValuation>(candidate.ValuationRef).Worth);
     }
     Assert.True(!schemaPaths.Keys.Any(key => key.StartsWith(Schemas.Attempt + ":", StringComparison.Ordinal)));

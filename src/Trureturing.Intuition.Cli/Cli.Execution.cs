@@ -82,6 +82,7 @@ private static int Attempt(ArtifactStore store, string stateRef, string proposal
             Schemas.Ledger,
             stateRef,
             allocationRef,
+            state.Neighborhood,
             Array.Empty<IntuitionLedgerEntry>(),
             new CalibrationSummary(0, 0, 0, 0, 0, 0),
             "Advisory research ledger: proposals are conjectures, not certified truth.",

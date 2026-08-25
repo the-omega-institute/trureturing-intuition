@@ -57,6 +57,7 @@ public enum MetricStatus { Open, Measured }
 public enum ResearchOutcome { Proved, Refuted, Wall, Duplicate, Trivial, Open, InfrastructureFailure }
 public enum CoverageLevel { None, WitnessCut, FiniteObservedCover, FormalCover }
 public enum LocalDevTruthSubsetKind { Graph, Export }
+public enum ConceptRelation { DirectPrerequisite, DirectDependent, SiblingLemma }
 
 public sealed record VerificationBudget(
     long VerifierCalls,
@@ -88,7 +89,8 @@ public sealed record IntakeEnvelope(
     VerificationBudget Budget,
     string VerificationProtocol,
     string ModelSnapshot,
-    string AgentMode);
+    string AgentMode,
+    ConceptNeighborhood Neighborhood);
 
 public sealed record IntuitionRunRequest(
     string Schema,
@@ -101,7 +103,23 @@ public sealed record IntuitionRunRequest(
     VerificationBudget Budget,
     string VerificationProtocol,
     string ModelSnapshot,
-    string SelectionMode);
+    string SelectionMode,
+    ConceptNeighborhood Neighborhood);
+
+public sealed record ConceptNeighborhoodMember(
+    string CandidateId,
+    string RelatedNodeId,
+    string RelatedNodeRef,
+    ConceptRelation Relation);
+
+public sealed record ConceptNeighborhood(
+    string NeighborhoodId,
+    string TargetNodeId,
+    string TargetNodeRef,
+    string ModuleId,
+    string DomainId,
+    int CandidateLimit,
+    IReadOnlyList<ConceptNeighborhoodMember> Members);
 
 public sealed record TargetInterface(
     string Schema,
@@ -162,13 +180,19 @@ public sealed record IntuitionState(
     string ModelSnapshot,
     string SelectionMode,
     bool ScalarizationAllowed,
-    bool BaseWriteAllowed);
+    bool BaseWriteAllowed,
+    ConceptNeighborhood Neighborhood);
 
 public sealed record DiscoveryLedger(CatalogStatus CatalogStatus, SemanticStatus SemanticStatus, CertificationStatus CertificationStatus);
 
 public sealed record IntuitionProposal(
     string Schema,
     string ProposalId,
+    string CandidateId,
+    string NeighborhoodId,
+    string TargetNodeId,
+    IReadOnlyList<string> EndpointNodeIds,
+    string ConjecturedBridge,
     string StateRef,
     string CandidateEditRef,
     string ProposerSeat,
@@ -320,12 +344,15 @@ public sealed record CalibrationSummary(
 
 public sealed record IntuitionLedgerEntry(
     string CandidateId,
+    string NeighborhoodId,
+    string TargetNodeId,
     string CandidateEditRef,
     string ProposalRef,
     string ValuationRef,
     IReadOnlyList<string> EndpointNodeIds,
     IReadOnlyList<string> EndpointRefs,
     string ConjecturedBridge,
+    DiscoveryLedger Discovery,
     WorthVector Worth,
     bool OnParetoFront,
     bool Dominated,
@@ -338,6 +365,7 @@ public sealed record IntuitionLedger(
     string Schema,
     string StateRef,
     string AllocationRef,
+    ConceptNeighborhood Neighborhood,
     IReadOnlyList<IntuitionLedgerEntry> Candidates,
     CalibrationSummary Calibration,
     string Advisory,

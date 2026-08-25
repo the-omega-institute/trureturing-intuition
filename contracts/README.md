@@ -24,3 +24,8 @@ Main contracts:
 - `intuition-release.v1`
 - `temporal-replay-case.v1`
 - `calibration-report.v1`
+
+`intuition-intake-envelope.v1`, `intuition-run-request.v1`, and `intuition-state.v1` embed a bounded
+`ConceptNeighborhood` grouping. `intuition-proposal.v1` carries its neighborhood/target binding,
+two endpoint node IDs, conjectured bridge, and discovery ledger. `intuition-ledger.v1` repeats the
+grouping and requires any populated candidate rows to cover it exactly.

@@ -57,6 +57,7 @@ public static partial class ContractValidator
         RequireSchema(value.Schema, Schemas.Ledger);
         RequireArtifactRef(value.StateRef, nameof(value.StateRef));
         RequireArtifactRef(value.AllocationRef, nameof(value.AllocationRef));
+        Validate(value.Neighborhood);
         RequireNonEmpty(value.Advisory, nameof(value.Advisory));
         if (value.RecordedAtUnix < 0) throw new InvalidOperationException("recorded_at_unix is negative.");
 
@@ -69,6 +70,14 @@ public static partial class ContractValidator
                 throw new InvalidOperationException("Ledger candidates must be strictly candidate-id sorted and unique.");
             }
             previousId = candidate.CandidateId;
+            if (!string.Equals(candidate.NeighborhoodId, value.Neighborhood.NeighborhoodId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Ledger candidate neighborhood_id does not match its group.");
+            }
+            if (!string.Equals(candidate.TargetNodeId, value.Neighborhood.TargetNodeId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Ledger candidate target_node_id does not match its group.");
+            }
             RequireArtifactRef(candidate.CandidateEditRef, nameof(candidate.CandidateEditRef));
             RequireArtifactRef(candidate.ProposalRef, nameof(candidate.ProposalRef));
             RequireArtifactRef(candidate.ValuationRef, nameof(candidate.ValuationRef));
@@ -77,6 +86,10 @@ public static partial class ContractValidator
             if (candidate.EndpointRefs.Count != 2) throw new InvalidOperationException("A bridge ledger entry requires two endpoint refs.");
             RequireSortedUniqueRefs(candidate.EndpointRefs, nameof(candidate.EndpointRefs));
             RequireNonEmpty(candidate.ConjecturedBridge, nameof(candidate.ConjecturedBridge));
+            if (!candidate.EndpointNodeIds.Contains(candidate.TargetNodeId, StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException("A ledger bridge must include its neighborhood target endpoint.");
+            }
             if (candidate.OnParetoFront == candidate.Dominated)
             {
                 throw new InvalidOperationException("A ledger candidate must be either Pareto-front or dominated, but not both.");
@@ -95,6 +108,13 @@ public static partial class ContractValidator
             {
                 throw new InvalidOperationException("Only proved ledger candidates may carry formalization requests.");
             }
+        }
+
+        var groupedCandidateIds = value.Neighborhood.Members.Select(static member => member.CandidateId);
+        if (value.Candidates.Count != 0
+            && !value.Candidates.Select(static candidate => candidate.CandidateId).SequenceEqual(groupedCandidateIds, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException("Ledger candidates must exactly cover their neighborhood group.");
         }
 
         var calibration = value.Calibration;
