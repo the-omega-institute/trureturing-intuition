@@ -1,5 +1,8 @@
 var root = FindRoot();
 var failures = new List<string>();
+if (Directory.Exists(Path.Combine(root, "site"))) failures.Add("site/: visualization belongs in trureturing-pages");
+if (File.Exists(Path.Combine(root, ".github", "workflows", "pages.yml"))) failures.Add("pages.yml: Pages deployment belongs in trureturing-pages");
+
 var productionRoots = new[]
 {
     Path.Combine(root, "src"),

@@ -7,7 +7,7 @@ content-addressed store, intake router, and Pareto analyzer:
 ```bash
 dotnet build Trureturing.Intuition.slnx -c Release
 dotnet run --project src/Trureturing.Intuition.Cli -c Release --no-build -- \
-  example-cycle --root artifacts --site site
+  example-cycle --root artifacts
 ```
 
 The local adapter is deliberately named `LocalDevMockTruthAdapter`. Its subset is bound to
@@ -15,7 +15,8 @@ The local adapter is deliberately named `LocalDevMockTruthAdapter`. Its subset i
 `453e725795fda1d57bf01756cee8611f2c966d15` and tree
 `c21635d1dc8533602b81ffde03b414b1d4503d24`. It emits a structurally valid
 `truth-release-verification-receipt.v1`, but it does not run or impersonate the real
-`Trureturing.Truth` verifier. The mock release binding and dashboard carry that caveat explicitly.
+`Trureturing.Truth` verifier. The mock release binding and generated artifacts carry that caveat
+explicitly.
 
 The example's stable root artifacts are:
 
@@ -29,5 +30,6 @@ is generated. The two proved, one refuted, and one open outcomes enter through
 `formalization-request.v1` artifacts, and those artifacts require `mock_write_back: true` and
 `push_allowed: false`.
 
-The generated Pages dashboard is `site/index.html`; its downloadable ledger and release payloads
-are under `site/data/`.
+All cycle outputs remain canonical JSON in the content-addressed store under `artifacts/`. The CLI
+prints the candidate edit, allocation, independent settlement, formalization request, ledger, and
+release references for downstream data consumers. Visualization belongs in `trureturing-pages`.

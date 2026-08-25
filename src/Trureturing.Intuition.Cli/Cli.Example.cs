@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text;
 using Trureturing.Intuition.Core;
 
 internal static partial class Cli
@@ -19,7 +17,7 @@ internal static partial class Cli
         OutcomeDistribution PredictedOutcomes,
         string? RequestedLemma);
 
-    private static int ExampleCycle(ArtifactStore store, string site)
+    private static int ExampleCycle(ArtifactStore store)
     {
         var adapter = LocalDevMockTruthAdapter.Produce(store);
         var nodeRefs = adapter.NodeRefs;
@@ -236,17 +234,16 @@ internal static partial class Cli
             ExampleRecordedAtUnix);
         var releaseRef = store.Put(release);
 
-        RenderExampleSite(site, store, adapter, allocation, ledger, ledgerRef, releaseRef);
         WriteResult(new Dictionary<string, object?>
         {
             ["allocation_ref"] = allocationRef,
+            ["candidate_edit_refs"] = candidateRefs.Values.Order(StringComparer.Ordinal).ToArray(),
             ["formalization_request_refs"] = formalizationRequestRefs,
             ["independent_settlement_refs"] = independentSettlementRefs,
             ["intuition_release_ref"] = releaseRef,
             ["ledger_ref"] = ledgerRef,
             ["receipt_ref"] = adapter.ReceiptRef,
             ["selected_for_execution"] = allocation.SelectedForExecution,
-            ["site_path"] = Path.GetFullPath(site),
             ["state_ref"] = intake.StateRef
         });
         return 0;
@@ -335,76 +332,4 @@ internal static partial class Cli
         }
     }
 
-    private static void RenderExampleSite(
-        string site,
-        ArtifactStore store,
-        LocalDevMockTruthAdapterResult adapter,
-        IntuitionAllocation allocation,
-        IntuitionLedger ledger,
-        string ledgerRef,
-        string releaseRef)
-    {
-        var fullSite = Path.GetFullPath(site);
-        Directory.CreateDirectory(fullSite);
-        Directory.CreateDirectory(Path.Combine(fullSite, "data"));
-        File.Copy(store.PathFor(ledgerRef), Path.Combine(fullSite, "data", "intuition-ledger.v1.json"), overwrite: true);
-        File.Copy(store.PathFor(releaseRef), Path.Combine(fullSite, "data", "intuition-release.v1.json"), overwrite: true);
-
-        var rows = new StringBuilder();
-        foreach (var entry in ledger.Candidates)
-        {
-            var outcome = entry.Outcome.ToString().ToUpperInvariant();
-            var frontier = entry.OnParetoFront ? "PARETO FRONT" : "DOMINATED";
-            var writeBack = entry.FormalizationRequestRef is null
-                ? "No write-back request"
-                : $"Mock formalization request {ShortRef(entry.FormalizationRequestRef)} written back as an artifact";
-            rows.Append($$"""
-              <article class="candidate">
-                <div class="candidate-head">
-                  <div><span class="candidate-id">{{H(entry.CandidateId)}}</span><h2>{{H(entry.ConjecturedBridge)}}</h2></div>
-                  <span class="outcome {{outcome.ToLowerInvariant()}}">{{outcome}}</span>
-                </div>
-                <div class="endpoints"><code>{{H(entry.EndpointNodeIds[0])}}</code><span aria-hidden="true">&#8596;</span><code>{{H(entry.EndpointNodeIds[1])}}</code></div>
-                <div class="worth" aria-label="Worth vector">
-                  {{Metric("Novelty", entry.Worth.Novelty)}}{{Metric("Dependency readiness", entry.Worth.Readiness)}}{{Metric("Structural realization", entry.Worth.Realization)}}{{Metric("Receipt potential", entry.Worth.ReceiptPotential)}}
-                </div>
-                <div class="candidate-foot"><span class="front {{(entry.OnParetoFront ? "on" : "off")}}">{{frontier}}</span><span>{{H(writeBack)}}</span></div>
-              </article>
-            """);
-        }
-
-        var html = $$"""
-        <!doctype html>
-        <html lang="en">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width,initial-scale=1">
-          <meta name="description" content="Advisory intuition ledger example over frozen TrueTurning nodes">
-          <title>Intuition Ledger / D5 Carrier Example</title>
-          <style>
-            :root{color-scheme:dark;--bg:#101417;--panel:#171d21;--line:#344047;--text:#f3f6f7;--muted:#a9b4ba;--cyan:#69d2e7;--green:#46c981;--red:#ef6a6a;--amber:#e8b44e;--paper:#e8edf0}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}.shell{width:min(1180px,calc(100% - 32px));margin:0 auto}.topbar{border-bottom:1px solid var(--line);background:#0c1012}.topbar .shell{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-weight:750}.brand span{color:var(--cyan)}.source{color:var(--muted);font:12px ui-monospace,SFMono-Regular,Consolas,monospace}.intro{padding:40px 0 28px;border-bottom:1px solid var(--line)}h1{font-size:clamp(30px,5vw,54px);line-height:1.03;margin:0 0 14px;max-width:780px;letter-spacing:0}.lede{max-width:820px;color:var(--muted);font-size:17px;line-height:1.6;margin:0}.advisory{margin-top:24px;border-left:4px solid var(--amber);background:#211d14;padding:15px 17px;color:#f4d99a;font-size:14px;line-height:1.5}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line)}.stat{padding:24px 18px;border-right:1px solid var(--line)}.stat:last-child{border-right:0}.stat strong{display:block;font-size:30px}.stat span{color:var(--muted);font-size:12px;text-transform:uppercase}.policy{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 0;border-bottom:1px solid var(--line)}.policy h2{font-size:14px;text-transform:uppercase;color:var(--cyan);margin:0 0 9px}.policy p{margin:0;color:var(--muted);line-height:1.55}.policy code{color:var(--paper)}.ledger{padding:30px 0 48px}.ledger-title{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:18px}.ledger-title h2{font-size:21px;margin:0}.ledger-title a{color:var(--cyan);font-size:13px}.candidate{background:var(--panel);border:1px solid var(--line);border-radius:6px;margin:0 0 14px;padding:20px}.candidate-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}.candidate-id{font:11px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--cyan);text-transform:uppercase}.candidate h2{font-size:18px;line-height:1.4;margin:6px 0 0;max-width:850px}.outcome{flex:none;padding:6px 9px;border:1px solid currentColor;border-radius:4px;font-size:11px;font-weight:800}.proved{color:var(--green);background:#10261b}.refuted{color:var(--red);background:#291515}.open{color:var(--amber);background:#292210}.endpoints{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);gap:8px;align-items:center;margin:18px 0}.endpoints code{display:block;padding:10px;background:#0d1214;border:1px solid #283238;overflow-wrap:anywhere;color:#d5dee2;font-size:12px}.endpoints span{text-align:center;color:var(--muted)}.worth{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #2d383e}.metric{padding:12px;border-right:1px solid #2d383e}.metric:last-child{border-right:0}.metric span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.metric strong{font:18px ui-monospace,SFMono-Regular,Consolas,monospace}.metric .unknown{color:var(--amber);font-size:14px}.candidate-foot{display:flex;justify-content:space-between;gap:20px;align-items:center;color:var(--muted);font-size:12px;margin-top:16px}.front{font-weight:800}.front.on{color:var(--cyan)}.front.off{color:#899399}footer{padding:28px 0 42px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7}footer code{color:var(--paper)}@media(max-width:760px){.source{display:none}.intro{padding-top:28px}.stats{grid-template-columns:repeat(2,1fr)}.stat{border-bottom:1px solid var(--line)}.policy{grid-template-columns:1fr}.candidate-head,.candidate-foot{align-items:flex-start;flex-direction:column}.endpoints{grid-template-columns:1fr}.endpoints span{transform:rotate(90deg)}.worth{grid-template-columns:repeat(2,1fr)}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid #2d383e}.ledger-title{align-items:flex-start;flex-direction:column} }
-          </style>
-        </head>
-        <body>
-          <header class="topbar"><div class="shell"><div class="brand">TRURETURING <span>/ INTUITION</span></div><div class="source">D5 CARRIER / FROZEN {{H(LocalDevMockTruthAdapter.SourceCommit[..8])}}</div></div></header>
-          <main>
-            <section class="intro"><div class="shell"><h1>Intuition ledger: one complete research cycle</h1><p class="lede">Four typed candidate bridges move from a frozen receipt through vector valuation and shadow Pareto allocation, then receive independent mock settlements. The ledger preserves positive, negative, and unresolved findings with equal fidelity.</p><div class="advisory"><strong>CONJECTURE, NOT CERTIFIED TRUTH.</strong> {{H(ledger.Advisory)}} The local adapter and every settlement in this example are explicitly mocked.</div></div></section>
-            <section class="shell stats" aria-label="Calibration summary"><div class="stat"><strong>{{ledger.Calibration.TotalCount}}</strong><span>candidates</span></div><div class="stat"><strong>{{ledger.Calibration.ProvedCount}}</strong><span>proved</span></div><div class="stat"><strong>{{ledger.Calibration.RefutedCount}}</strong><span>refuted</span></div><div class="stat"><strong>{{ledger.Calibration.OpenCount}}</strong><span>open</span></div><div class="stat"><strong>{{ledger.Calibration.HitRate:P0}}</strong><span>hit rate / decided</span></div></section>
-            <section class="shell policy"><div><h2>Allocation policy</h2><p><code>{{H(allocation.Policy)}}</code> computes a non-dominated set and selected <strong>{{allocation.SelectedForExecution.Count}}</strong> candidates for execution. No attempt artifact exists.</p></div><div><h2>Independent intake</h2><p>Settlements arrive independently of allocation and execution. PROVED bridges emit mock <code>formalization-request.v1</code> write-back payloads; no base repository is changed.</p></div></section>
-            <section class="shell ledger"><div class="ledger-title"><h2>Candidate bridges</h2><a href="data/intuition-ledger.v1.json">Open content-addressed ledger payload</a></div>{{rows}}</section>
-          </main>
-          <footer><div class="shell">Mock receipt source binding: <code>{{H(LocalDevMockTruthAdapter.SourceCommit)}}</code> / tree <code>{{H(LocalDevMockTruthAdapter.SourceTree)}}</code><br>Ledger <code>{{H(ledgerRef)}}</code> / intuition release <code>{{H(releaseRef)}}</code></div></footer>
-        </body>
-        </html>
-        """;
-        File.WriteAllText(Path.Combine(fullSite, "index.html"), html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-
-        static string H(string value) => WebUtility.HtmlEncode(value);
-        static string ShortRef(string value) => value[..19] + "...";
-        static string Metric(string label, MetricEvidence metric)
-        {
-            var value = metric.Status == MetricStatus.Open ? "<strong class=\"unknown\">OPEN</strong>" : $"<strong>{metric.Value!.Value:0.00}</strong>";
-            return $"<div class=\"metric\"><span>{H(label)}</span>{value}</div>";
-        }
-    }
 }
