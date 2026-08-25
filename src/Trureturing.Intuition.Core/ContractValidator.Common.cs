@@ -32,6 +32,8 @@ public static void Validate(object artifact)
             case IntuitionSettlement value: Validate(value); break;
             case IndependentSettlement value: Validate(value); break;
             case FormalizationRequest value: Validate(value); break;
+            case IntuitionTopologyBinding value: Validate(value); break;
+            case FormalizationWorkRequestV1 value: Validate(value); break;
             case IntuitionLedger value: Validate(value); break;
             case LocalDevFrozenTruthNode value: Validate(value); break;
             case LocalDevMockTruthSubset value: Validate(value); break;
