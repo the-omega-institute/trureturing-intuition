@@ -1,0 +1,85 @@
+{
+  "schema_version": "certified-topology.v1",
+  "truth_release_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "algorithm_profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "producer_commit": "cccccccccccccccccccccccccccccccccccccccc",
+  "nodes": [
+    {
+      "node_id": "node-target",
+      "in_degree": 2,
+      "out_degree": 3,
+      "min_depth": 4,
+      "max_depth": 4,
+      "ancestor_count": 8,
+      "descendant_count": 20,
+      "descendant_cost": 144,
+      "normalized_reach": { "numerator": 4, "denominator": 5 },
+      "dependency_betweenness": { "numerator": 7, "denominator": 9 }
+    },
+    {
+      "node_id": "node-related-0",
+      "in_degree": 1,
+      "out_degree": 2,
+      "min_depth": 3,
+      "max_depth": 3,
+      "ancestor_count": 5,
+      "descendant_count": 11,
+      "descendant_cost": 89,
+      "normalized_reach": { "numerator": 1, "denominator": 2 },
+      "dependency_betweenness": { "numerator": 2, "denominator": 3 }
+    },
+    {
+      "node_id": "node-related-1",
+      "in_degree": 1,
+      "out_degree": 0,
+      "min_depth": 5,
+      "max_depth": 5,
+      "ancestor_count": 9,
+      "descendant_count": 0,
+      "descendant_cost": 0,
+      "normalized_reach": { "numerator": 0, "denominator": 1 },
+      "dependency_betweenness": { "numerator": 0, "denominator": 1 }
+    },
+    {
+      "node_id": "node-related-2",
+      "in_degree": 2,
+      "out_degree": 1,
+      "min_depth": 4,
+      "max_depth": 4,
+      "ancestor_count": 7,
+      "descendant_count": 3,
+      "descendant_cost": 8,
+      "normalized_reach": { "numerator": 1, "denominator": 5 },
+      "dependency_betweenness": { "numerator": 1, "denominator": 7 }
+    },
+    {
+      "node_id": "node-related-3",
+      "in_degree": 1,
+      "out_degree": 0,
+      "min_depth": 5,
+      "max_depth": 5,
+      "ancestor_count": 10,
+      "descendant_count": 0,
+      "descendant_cost": 0,
+      "normalized_reach": { "numerator": 0, "denominator": 1 },
+      "dependency_betweenness": { "numerator": 0, "denominator": 1 }
+    },
+    {
+      "node_id": "node-related-4",
+      "in_degree": 3,
+      "out_degree": 1,
+      "min_depth": 4,
+      "max_depth": 4,
+      "ancestor_count": 12,
+      "descendant_count": 2,
+      "descendant_cost": 5,
+      "normalized_reach": { "numerator": 1, "denominator": 8 },
+      "dependency_betweenness": { "numerator": 1, "denominator": 12 }
+    }
+  ],
+  "cycle_certificate": { "status": "acyclic", "cycles": [] },
+  "dangling_reference_certificate": {
+    "status": "complete",
+    "dangling_references": []
+  }
+}

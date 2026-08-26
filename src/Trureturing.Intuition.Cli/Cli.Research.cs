@@ -127,4 +127,74 @@ private static int ProposalSet(ArtifactStore store, string stateRef, IReadOnlyLi
         WriteResult(ResidualCoverageAnalyzer.Analyze(universe, candidate));
         return 0;
     }
+
+    private static int TopologyContext(
+        ArtifactStore store,
+        string stateRef,
+        string topologyPath,
+        string algorithmProfileDigest,
+        string producerCommit)
+    {
+        IntuitionState state = store.Get<IntuitionState>(stateRef);
+        var binding = new CertifiedTopologyBinding(
+            state.ReleaseDigest,
+            algorithmProfileDigest,
+            producerCommit);
+        CertifiedTopologyLoadResult load = CertifiedTopologyReader.LoadFile(
+            topologyPath,
+            binding);
+        if (!load.Available)
+        {
+            WriteResult(new Dictionary<string, object?>
+            {
+                ["availability"] = "unavailable",
+                ["truth_release_digest"] = state.ReleaseDigest,
+                ["algorithm_profile_digest"] = algorithmProfileDigest,
+                ["producer_commit"] = producerCommit,
+                ["signals"] = Array.Empty<object>(),
+                ["advisory"] = "No live certified-topology publication is available; no structural reasoning input was used."
+            });
+            return 0;
+        }
+
+        TopologyBridgeReasoningContext context = TopologyReasoningAdvisor.Build(
+            load.Topology!,
+            state);
+        object[] signals = context.Signals.Select(signal => (object)new Dictionary<string, object?>
+        {
+            ["node_id"] = signal.NodeId,
+            ["candidate_id"] = signal.CandidateId,
+            ["relation"] = signal.Relation,
+            ["in_degree"] = signal.InDegree.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["out_degree"] = signal.OutDegree.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["min_depth"] = signal.MinDepth.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["max_depth"] = signal.MaxDepth.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["ancestor_count"] = signal.AncestorCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["descendant_count"] = signal.DescendantCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["descendant_cost"] = signal.DescendantCost.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["normalized_reach"] = Exact(signal.NormalizedReach),
+            ["dependency_betweenness"] = Exact(signal.DependencyBetweenness),
+            ["is_load_bearing"] = signal.IsLoadBearing,
+            ["is_frontier"] = signal.IsFrontier
+        }).ToArray();
+        WriteResult(new Dictionary<string, object?>
+        {
+            ["availability"] = "certified",
+            ["truth_release_digest"] = context.Binding.TruthReleaseDigest,
+            ["algorithm_profile_digest"] = context.Binding.AlgorithmProfileDigest,
+            ["producer_commit"] = context.Binding.ProducerCommit,
+            ["neighborhood_id"] = context.NeighborhoodId,
+            ["target_node_id"] = context.TargetNodeId,
+            ["signals"] = signals,
+            ["advisory"] = context.Advisory
+        });
+        return 0;
+    }
+
+    private static IReadOnlyDictionary<string, string> Exact(
+        ExactNonNegativeRational value) => new Dictionary<string, string>
+        {
+            ["numerator"] = value.Numerator.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["denominator"] = value.Denominator.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
 }

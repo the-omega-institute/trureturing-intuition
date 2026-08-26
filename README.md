@@ -34,6 +34,7 @@ base_write     = forbidden
 
 ```text
 verified truth-release receipt
+  + optional bound certified-topology.v1 structural context
   -> frozen intuition state
   -> bounded target concept neighborhood
   -> one typed bridge proposal per related concept
@@ -46,6 +47,21 @@ verified truth-release receipt
 The bootstrap policy cannot create attempts or settlements, even with an owner authorization.
 The attempt and settlement ledger contracts remain available for legacy records and a future,
 separately versioned executable policy.
+
+`certified-topology.v1` is an optional advisory input to bridge proposal and vector valuation.
+The consumer requires exact integer syntax, reduced rational centrality, clean integrity
+certificates, and an exact match on truth-release digest, algorithm-profile digest, and producer
+commit. It identifies load-bearing and frontier nodes in the frozen concept neighborhood without
+granting those signals truth authority. A missing publication produces an explicit unavailable
+result; an existing malformed or mismatched artifact fails closed.
+
+```bash
+dotnet run --project src/Trureturing.Intuition.Cli -c Release -- \
+  topology-context --root artifacts --state-ref sha256:<state> \
+  --topology certified-topology.v1.json \
+  --algorithm-profile-digest sha256:<profile> \
+  --topology-producer-commit <40-hex-commit>
+```
 
 Independently observed research outcomes use a separate `independent-settlement.v1` intake. They
 do not contain an attempt reference and do not represent work selected or executed by the shadow
