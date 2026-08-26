@@ -21,6 +21,12 @@ public static Task<int> RunAsync(string[] args)
                 "valuation-set" => ValuationSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Required(options, "critique-set-ref"), Many(options, "input")),
                 "allocate" => Allocate(store, Required(options, "state-ref"), Required(options, "valuation-set-ref")),
                 "coverage" => Coverage(store, Required(options, "universe-ref"), Required(options, "candidate-ref")),
+                "topology-context" => TopologyContext(
+                    store,
+                    Required(options, "state-ref"),
+                    Required(options, "topology"),
+                    Required(options, "algorithm-profile-digest"),
+                    Required(options, "topology-producer-commit")),
                 "attempt" => Attempt(store, Required(options, "state-ref"), Required(options, "proposal-ref"), Required(options, "valuation-ref"), Required(options, "allocation-ref"), Required(options, "authorization-ref"), Required(options, "attempt-id"), Required(options, "executor")),
                 "settle" => Settle(store, Required(options, "input")),
                 "independent-settle" => IndependentSettle(store, Required(options, "input")),

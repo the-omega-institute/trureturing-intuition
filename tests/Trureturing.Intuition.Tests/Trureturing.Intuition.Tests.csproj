@@ -8,4 +8,8 @@
     <ProjectReference Include="../../src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj" />
     <ProjectReference Include="../../src/Trureturing.Intuition.Cli/Trureturing.Intuition.Cli.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../fixtures/**/*" Link="fixtures/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../contracts/certified-topology.v1.schema.json" Link="contracts/certified-topology.v1.schema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

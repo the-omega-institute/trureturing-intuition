@@ -10,6 +10,13 @@ var tests = new (string Name, Action Run)[]
     ("concept neighborhood bounds and uniqueness enforced", ConceptNeighborhoodBounds),
     ("proposal carries its typed neighborhood bridge", ProposalCarriesNeighborhoodBridge),
     ("proposal batch covers the complete neighborhood", ProposalBatchCoversNeighborhood),
+    ("certified topology is consumed as exact bound reasoning data", CertifiedTopologyReasoning),
+    ("certified topology rejects hostile metrics and bindings", CertifiedTopologyRejectsHostileInput),
+    ("certified topology rejects malformed JSON with typed error", CertifiedTopologyRejectsMalformedJson),
+    ("certified topology rejects unreduced rational with typed error", CertifiedTopologyRejectsUnreducedRational),
+    ("certified topology rejects wrong schema version with typed error", CertifiedTopologyRejectsWrongSchemaVersion),
+    ("certified topology schema bytes are pinned", CertifiedTopologySchemaPinned),
+    ("missing topology publication is an unavailable dry run", MissingTopologyIsUnavailable),
     ("open worth dimension cannot carry a value", OpenMetricCannotCarryValue),
     ("shadow allocation selects nothing", ShadowAllocationSelectsNothing),
     ("Pareto dominance respects vector cost", ParetoDominance),
@@ -137,6 +144,140 @@ static void ProposalCarriesNeighborhoodBridge()
     ContractValidator.Validate(proposal);
     Assert.Throws(() => ContractValidator.Validate(proposal with { EndpointNodeIds = new[] { "node-related-0", "node-related-1" } }));
     Assert.Throws(() => ContractValidator.Validate(proposal with { ConjecturedBridge = "" }));
+}
+
+static CertifiedTopologyBinding TopologyBinding() =>
+    new(Hash('5'), Hash('a'), Git('c'));
+
+static byte[] TopologyFixture() => File.ReadAllBytes(System.IO.Path.Combine(
+    AppContext.BaseDirectory,
+    "fixtures",
+    "certified-topology.v1.json"));
+
+static void CertifiedTopologyReasoning()
+{
+    CertifiedTopologyReadModel topology = CertifiedTopologyReader.Read(
+        TopologyFixture(),
+        TopologyBinding());
+    CertifiedTopologyNodeMetrics target = topology.GetNode("node-target");
+    Assert.Equal(new System.Numerics.BigInteger(144), target.DescendantCost);
+    Assert.Equal(new ExactNonNegativeRational(7, 9), target.DependencyBetweenness);
+
+    TopologyBridgeReasoningContext context = TopologyReasoningAdvisor.Build(
+        topology,
+        State());
+    TopologyReasoningSignal targetSignal = context.Signals.Single(
+        signal => signal.NodeId == "node-target");
+    Assert.True(targetSignal.IsLoadBearing);
+    Assert.True(!targetSignal.IsFrontier);
+    Assert.True(context.Signals.Single(
+        signal => signal.NodeId == "node-related-1").IsFrontier);
+
+    IntuitionProposal proposal = Proposal("topology-advised", Hash('9'));
+    IReadOnlyList<TopologyReasoningSignal> proposalInputs =
+        TopologyReasoningAdvisor.ForProposal(context, proposal);
+    Assert.SequenceEqual(
+        new[] { "node-related-0", "node-target" },
+        proposalInputs.Select(signal => signal.NodeId));
+}
+
+static void CertifiedTopologyRejectsHostileInput()
+{
+    string valid = System.Text.Encoding.UTF8.GetString(TopologyFixture());
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes("{"),
+        TopologyBinding()));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes("{}"),
+        TopologyBinding()));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+            "\"descendant_cost\": 144",
+            "\"descendant_cost\": 144.0",
+            StringComparison.Ordinal)),
+        TopologyBinding()));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+            "\"numerator\": 4, \"denominator\": 5",
+            "\"numerator\": 4, \"denominator\": 6",
+            StringComparison.Ordinal)),
+        TopologyBinding()));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        TopologyFixture(),
+        TopologyBinding() with { TruthReleaseDigest = Hash('6') }));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        TopologyFixture(),
+        TopologyBinding() with { AlgorithmProfileDigest = Hash('b') }));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        TopologyFixture(),
+        TopologyBinding() with { ProducerCommit = Git('d') }));
+    Assert.Throws(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+            "\"schema_version\": \"certified-topology.v1\"",
+            "\"schema_version\": \"certified-topology.v1\", \"unknown\": true",
+            StringComparison.Ordinal)),
+        TopologyBinding()));
+}
+
+static void CertifiedTopologySchemaPinned()
+{
+    const string ExpectedSchemaSha256 =
+        "f6a6eabcf79b7db44eb2ec8b296345c44fa23e5057a26dc4a506529398ff2c42";
+    byte[] bytes = File.ReadAllBytes(System.IO.Path.Combine(
+        AppContext.BaseDirectory,
+        "contracts",
+        "certified-topology.v1.schema.json"));
+    string digest = Convert.ToHexString(
+        System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+    Assert.Equal(ExpectedSchemaSha256, digest);
+}
+
+static void CertifiedTopologyRejectsMalformedJson()
+{
+    Assert.Throws<InvalidDataException>(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes("{"),
+        TopologyBinding()));
+}
+
+static void CertifiedTopologyRejectsUnreducedRational()
+{
+    string valid = System.Text.Encoding.UTF8.GetString(TopologyFixture());
+    byte[] unreduced = System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+        "\"numerator\": 4, \"denominator\": 5",
+        "\"numerator\": 8, \"denominator\": 10",
+        StringComparison.Ordinal));
+    Assert.Throws<InvalidDataException>(() => CertifiedTopologyReader.Read(
+        unreduced,
+        TopologyBinding()));
+}
+
+static void CertifiedTopologyRejectsWrongSchemaVersion()
+{
+    string valid = System.Text.Encoding.UTF8.GetString(TopologyFixture());
+    byte[] wrongVersion = System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+        "\"schema_version\": \"certified-topology.v1\"",
+        "\"schema_version\": \"certified-topology.v2\"",
+        StringComparison.Ordinal));
+    Assert.Throws<InvalidDataException>(() => CertifiedTopologyReader.Read(
+        wrongVersion,
+        TopologyBinding()));
+}
+
+static void MissingTopologyIsUnavailable()
+{
+    using var temp = new TempDirectory();
+    string missing = System.IO.Path.Combine(temp.Path, "not-published.json");
+    CertifiedTopologyLoadResult result = CertifiedTopologyReader.LoadFile(
+        missing,
+        TopologyBinding());
+    Assert.True(!result.Available);
+    Assert.True(result.Topology is null);
+
+    string malformed = System.IO.Path.Combine(temp.Path, "malformed.json");
+    File.WriteAllText(malformed, "{}");
+    Assert.Throws(() => CertifiedTopologyReader.LoadFile(
+        malformed,
+        TopologyBinding()));
 }
 
 static void ProposalBatchCoversNeighborhood()
@@ -477,6 +618,18 @@ static class Assert
     public static void Equal<T>(T expected, T actual) where T : notnull { if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new InvalidOperationException($"Expected {expected}, got {actual}."); }
     public static void SequenceEqual<T>(IEnumerable<T> expected, IEnumerable<T> actual) { if (!expected.SequenceEqual(actual)) throw new InvalidOperationException("Sequences differ."); }
     public static void Throws(Action action) { try { action(); } catch { return; } throw new InvalidOperationException("Expected exception."); }
+    public static void Throws<TException>(Action action) where TException : Exception
+    {
+        try { action(); }
+        catch (TException) { return; }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException(
+                $"Expected {typeof(TException).Name}, got {exception.GetType().Name}.",
+                exception);
+        }
+        throw new InvalidOperationException($"Expected {typeof(TException).Name}.");
+    }
 }
 
 sealed class TempDirectory : IDisposable

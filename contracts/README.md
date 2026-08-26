@@ -29,3 +29,11 @@ Main contracts:
 `ConceptNeighborhood` grouping. `intuition-proposal.v1` carries its neighborhood/target binding,
 two endpoint node IDs, conjectured bridge, and discovery ledger. `intuition-ledger.v1` repeats the
 grouping and requires any populated candidate rows to cover it exactly.
+
+The shared external `certified-topology.v1` schema is vendored byte-for-byte from
+`trureturing-fkst-packages/packages/trureturing-topology` and pinned by
+`certified-topology.v1.schema.sha256`; it remains upstream-owned rather than an
+Intuition contract. `CertifiedTopologyReader` implements that closed schema and exposes
+an immutable Intuition read-model with arbitrary-precision structural integers and reduced exact
+rationals. `TopologyReasoningAdvisor` projects only advisory load-bearing/frontier inputs for one
+frozen `ConceptNeighborhood`; it does not modify proposals, valuations, allocation, or truth.
