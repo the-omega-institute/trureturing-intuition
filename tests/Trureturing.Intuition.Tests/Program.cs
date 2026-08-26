@@ -12,6 +12,9 @@ var tests = new (string Name, Action Run)[]
     ("proposal batch covers the complete neighborhood", ProposalBatchCoversNeighborhood),
     ("certified topology is consumed as exact bound reasoning data", CertifiedTopologyReasoning),
     ("certified topology rejects hostile metrics and bindings", CertifiedTopologyRejectsHostileInput),
+    ("certified topology rejects malformed JSON with typed error", CertifiedTopologyRejectsMalformedJson),
+    ("certified topology rejects unreduced rational with typed error", CertifiedTopologyRejectsUnreducedRational),
+    ("certified topology rejects wrong schema version with typed error", CertifiedTopologyRejectsWrongSchemaVersion),
     ("certified topology schema bytes are pinned", CertifiedTopologySchemaPinned),
     ("missing topology publication is an unavailable dry run", MissingTopologyIsUnavailable),
     ("open worth dimension cannot carry a value", OpenMetricCannotCarryValue),
@@ -218,15 +221,46 @@ static void CertifiedTopologyRejectsHostileInput()
 
 static void CertifiedTopologySchemaPinned()
 {
+    const string ExpectedSchemaSha256 =
+        "f6a6eabcf79b7db44eb2ec8b296345c44fa23e5057a26dc4a506529398ff2c42";
     byte[] bytes = File.ReadAllBytes(System.IO.Path.Combine(
         AppContext.BaseDirectory,
         "contracts",
         "certified-topology.v1.schema.json"));
     string digest = Convert.ToHexString(
         System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
-    Assert.Equal(
-        "f6a6eabcf79b7db44eb2ec8b296345c44fa23e5057a26dc4a506529398ff2c42",
-        digest);
+    Assert.Equal(ExpectedSchemaSha256, digest);
+}
+
+static void CertifiedTopologyRejectsMalformedJson()
+{
+    Assert.Throws<InvalidDataException>(() => CertifiedTopologyReader.Read(
+        System.Text.Encoding.UTF8.GetBytes("{"),
+        TopologyBinding()));
+}
+
+static void CertifiedTopologyRejectsUnreducedRational()
+{
+    string valid = System.Text.Encoding.UTF8.GetString(TopologyFixture());
+    byte[] unreduced = System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+        "\"numerator\": 4, \"denominator\": 5",
+        "\"numerator\": 8, \"denominator\": 10",
+        StringComparison.Ordinal));
+    Assert.Throws<InvalidDataException>(() => CertifiedTopologyReader.Read(
+        unreduced,
+        TopologyBinding()));
+}
+
+static void CertifiedTopologyRejectsWrongSchemaVersion()
+{
+    string valid = System.Text.Encoding.UTF8.GetString(TopologyFixture());
+    byte[] wrongVersion = System.Text.Encoding.UTF8.GetBytes(valid.Replace(
+        "\"schema_version\": \"certified-topology.v1\"",
+        "\"schema_version\": \"certified-topology.v2\"",
+        StringComparison.Ordinal));
+    Assert.Throws<InvalidDataException>(() => CertifiedTopologyReader.Read(
+        wrongVersion,
+        TopologyBinding()));
 }
 
 static void MissingTopologyIsUnavailable()
@@ -584,6 +618,18 @@ static class Assert
     public static void Equal<T>(T expected, T actual) where T : notnull { if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new InvalidOperationException($"Expected {expected}, got {actual}."); }
     public static void SequenceEqual<T>(IEnumerable<T> expected, IEnumerable<T> actual) { if (!expected.SequenceEqual(actual)) throw new InvalidOperationException("Sequences differ."); }
     public static void Throws(Action action) { try { action(); } catch { return; } throw new InvalidOperationException("Expected exception."); }
+    public static void Throws<TException>(Action action) where TException : Exception
+    {
+        try { action(); }
+        catch (TException) { return; }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException(
+                $"Expected {typeof(TException).Name}, got {exception.GetType().Name}.",
+                exception);
+        }
+        throw new InvalidOperationException($"Expected {typeof(TException).Name}.");
+    }
 }
 
 sealed class TempDirectory : IDisposable
