@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Trureturing.Intuition.ResearchInputTests</RootNamespace>
+    <AssemblyName>Trureturing.Intuition.ResearchInputTests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../fixtures/certified-topology.v1.json" Link="fixtures/certified-topology.v1.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
