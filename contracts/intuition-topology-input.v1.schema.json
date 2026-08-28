@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intuition-topology-input.v1",
+  "title": "Intuition topology research input contracts",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "git_object": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "truth_release_digest",
+        "topology_digest",
+        "source_commit",
+        "source_tree",
+        "algorithm_profile_digest",
+        "producer_commit"
+      ],
+      "properties": {
+        "schema": { "const": "trureturing.topology-publication.v1" },
+        "truth_release_digest": { "$ref": "#/$defs/sha256" },
+        "topology_digest": { "$ref": "#/$defs/sha256" },
+        "source_commit": { "$ref": "#/$defs/git_object" },
+        "source_tree": { "$ref": "#/$defs/git_object" },
+        "algorithm_profile_digest": { "$ref": "#/$defs/sha256" },
+        "producer_commit": { "$ref": "#/$defs/git_object" }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "publication_ref",
+        "topology_ref",
+        "truth_release_digest",
+        "topology_digest",
+        "source_commit",
+        "source_tree",
+        "algorithm_profile_digest",
+        "producer_commit"
+      ],
+      "properties": {
+        "schema": { "const": "intuition-topology-input-receipt.v1" },
+        "publication_ref": { "$ref": "#/$defs/sha256" },
+        "topology_ref": { "$ref": "#/$defs/sha256" },
+        "truth_release_digest": { "$ref": "#/$defs/sha256" },
+        "topology_digest": { "$ref": "#/$defs/sha256" },
+        "source_commit": { "$ref": "#/$defs/git_object" },
+        "source_tree": { "$ref": "#/$defs/git_object" },
+        "algorithm_profile_digest": { "$ref": "#/$defs/sha256" },
+        "producer_commit": { "$ref": "#/$defs/git_object" }
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "receipt_ref",
+        "truth_release_digest",
+        "topology_digest",
+        "source_commit",
+        "source_tree"
+      ],
+      "properties": {
+        "schema": { "const": "intuition-topology-input-cursor.v1" },
+        "receipt_ref": { "$ref": "#/$defs/sha256" },
+        "truth_release_digest": { "$ref": "#/$defs/sha256" },
+        "topology_digest": { "$ref": "#/$defs/sha256" },
+        "source_commit": { "$ref": "#/$defs/git_object" },
+        "source_tree": { "$ref": "#/$defs/git_object" }
+      }
+    }
+  }
+}
