@@ -45,6 +45,9 @@ public static void Validate(object artifact)
             case TopologyPublicationCoordinate value: Validate(value); break;
             case IntuitionTopologyInputReceipt value: Validate(value); break;
             case IntuitionTopologyInputCursor value: Validate(value); break;
+            case HumanResearchCandidate value: Validate(value); break;
+            case HumanResearchCandidateContent value: Validate(value); break;
+            case HumanResearchCandidateReceipt value: Validate(value); break;
             default: throw new InvalidOperationException($"No validator registered for {artifact.GetType().FullName}.");
         }
     }

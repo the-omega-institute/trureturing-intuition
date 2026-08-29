@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "human-intuition-candidate.v1",
+  "title": "Human-originated Intuition candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidate_id", "candidate_content"],
+  "properties": {
+    "schema": { "const": "human-intuition-candidate.v1" },
+    "candidate_id": { "$ref": "#/$defs/digest" },
+    "candidate_content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "truth_release_digest",
+        "topology_digest",
+        "source_commit",
+        "source_tree",
+        "source_surface",
+        "human_actor",
+        "selected_node_ids",
+        "selected_edge_ids",
+        "human_prompt",
+        "agent_response_ref",
+        "candidate_kind",
+        "candidate_statement",
+        "falsifier",
+        "created_at"
+      ],
+      "properties": {
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "topology_digest": { "$ref": "#/$defs/digest" },
+        "source_commit": { "$ref": "#/$defs/gitObject" },
+        "source_tree": { "$ref": "#/$defs/gitObject" },
+        "source_surface": { "const": "trureturing-pages" },
+        "human_actor": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "selected_node_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+        },
+        "selected_edge_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+        },
+        "human_prompt": { "type": "string", "minLength": 1, "maxLength": 8000 },
+        "agent_response_ref": { "$ref": "#/$defs/digest" },
+        "candidate_kind": {
+          "enum": [
+            "bridge",
+            "subgoal",
+            "abstraction",
+            "counterexample",
+            "representation-change",
+            "open-question"
+          ]
+        },
+        "candidate_statement": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "falsifier": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gitObject": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    }
+  }
+}
