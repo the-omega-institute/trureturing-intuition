@@ -6,7 +6,10 @@ var tests = new (string Name, Action Run)[]
 {
     ("registers and replays one exact topology input", RegistersAndReplays),
     ("rejects topology digest mismatch", RejectsDigestMismatch),
-    ("rejects same-release topology rebinding", RejectsSameReleaseRebinding)
+    ("rejects same-release topology rebinding", RejectsSameReleaseRebinding),
+    ("registers one human research candidate idempotently", RegistersHumanCandidate),
+    ("rejects a tampered human candidate id", RejectsTamperedCandidateId),
+    ("rejects unordered human candidate nodes", RejectsUnorderedCandidateNodes)
 };
 
 int failed = 0;
@@ -42,6 +45,30 @@ static TopologyPublicationCoordinate Publication(byte[] bytes) => new(
     new string('2', 40),
     "sha256:" + new string('a', 64),
     new string('c', 40));
+
+static HumanResearchCandidate HumanCandidate(
+    IReadOnlyList<string>? nodes = null)
+{
+    var content = new HumanResearchCandidateContent(
+        "sha256:" + new string('5', 64),
+        "sha256:" + new string('6', 64),
+        new string('1', 40),
+        new string('2', 40),
+        "trureturing-pages",
+        "human:lexa",
+        nodes ?? ["D5/S0/A", "D5/S0/B"],
+        ["D5/S0/A->D5/S0/B"],
+        "Could these nodes share a stronger invariant?",
+        "sha256:" + new string('7', 64),
+        "bridge",
+        "There exists a structure-preserving bridge between the selected nodes.",
+        "A typed counterexample in which every proposed invariant fails.",
+        "2026-08-29T09:30:00Z");
+    return new HumanResearchCandidate(
+        HumanResearchCandidateSchemas.Candidate,
+        CanonicalJson.Sha256Reference(CanonicalJson.Serialize(content)),
+        content);
+}
 
 static void RegistersAndReplays()
 {
@@ -120,6 +147,44 @@ static void RejectsSameReleaseRebinding()
         Publication(changed),
         changed,
         cursor));
+}
+
+static void RegistersHumanCandidate()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    HumanResearchCandidate candidate = HumanCandidate();
+    HumanResearchCandidateRegistration first =
+        HumanResearchCandidateRegistrar.Register(store, candidate);
+    HumanResearchCandidateRegistration replay =
+        HumanResearchCandidateRegistrar.Register(store, candidate);
+
+    Assert.Equal(first.CandidateRef, replay.CandidateRef);
+    Assert.Equal(first.ReceiptRef, replay.ReceiptRef);
+    HumanResearchCandidateReceipt receipt =
+        store.Get<HumanResearchCandidateReceipt>(first.ReceiptRef);
+    Assert.Equal(candidate.CandidateId, receipt.CandidateId);
+    Assert.Equal(candidate.CandidateContent.TopologyDigest, receipt.TopologyDigest);
+}
+
+static void RejectsTamperedCandidateId()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    HumanResearchCandidate candidate = HumanCandidate() with
+    {
+        CandidateId = "sha256:" + new string('f', 64)
+    };
+    Assert.Throws(() => HumanResearchCandidateRegistrar.Register(store, candidate));
+}
+
+static void RejectsUnorderedCandidateNodes()
+{
+    using var temp = new TempDirectory();
+    var store = new ArtifactStore(temp.Path);
+    HumanResearchCandidate candidate = HumanCandidate(
+        ["D5/S0/B", "D5/S0/A"]);
+    Assert.Throws(() => HumanResearchCandidateRegistrar.Register(store, candidate));
 }
 
 sealed class TempDirectory : IDisposable
