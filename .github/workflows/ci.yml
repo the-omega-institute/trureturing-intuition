@@ -23,6 +23,11 @@ jobs:
         run: dotnet build Trureturing.Intuition.slnx -c Release
       - name: Core lifecycle tests
         run: dotnet run --project tests/Trureturing.Intuition.Tests -c Release --no-build
+      - name: Topology research input tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.ResearchInputTests
+          -c Release
       - name: Architecture boundary tests
         run: dotnet run --project tests/Trureturing.Intuition.ArchitectureTests -c Release --no-build
       - name: Build exact FKST substrate

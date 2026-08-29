@@ -16,6 +16,11 @@ public static Task<int> RunAsync(string[] args)
             {
                 "store" => Store(store, Required(options, "kind"), Required(options, "input")),
                 "ingest" => Ingest(store, Required(options, "input")),
+                "register-topology-input" => RegisterTopologyInput(
+                    store,
+                    Required(options, "publication"),
+                    Required(options, "topology"),
+                    Required(options, "cursor")),
                 "proposal-set" => ProposalSet(store, Required(options, "state-ref"), Many(options, "input")),
                 "critique-set" => CritiqueSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Many(options, "input")),
                 "valuation-set" => ValuationSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Required(options, "critique-set-ref"), Many(options, "input")),
@@ -67,6 +72,9 @@ public static Task<int> RunAsync(string[] args)
             "ledger" => store.Put(CanonicalJson.DeserializeStrict<IntuitionLedger>(bytes)),
             "replay-case" => store.Put(CanonicalJson.DeserializeStrict<TemporalReplayCase>(bytes)),
             "replay-score" => store.Put(CanonicalJson.DeserializeStrict<ReplayScore>(bytes)),
+            "topology-publication" => store.Put(CanonicalJson.DeserializeStrict<TopologyPublicationCoordinate>(bytes)),
+            "topology-input-receipt" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyInputReceipt>(bytes)),
+            "topology-input-cursor" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyInputCursor>(bytes)),
             _ => throw new InvalidOperationException($"Unsupported store kind '{kind}'.")
         };
         WriteResult(new Dictionary<string, object?> { ["artifact_ref"] = reference });

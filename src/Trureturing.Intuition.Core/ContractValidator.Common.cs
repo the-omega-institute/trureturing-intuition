@@ -42,6 +42,9 @@ public static void Validate(object artifact)
             case TemporalReplayCase value: Validate(value); break;
             case ReplayScore value: Validate(value); break;
             case CalibrationReport value: Validate(value); break;
+            case TopologyPublicationCoordinate value: Validate(value); break;
+            case IntuitionTopologyInputReceipt value: Validate(value); break;
+            case IntuitionTopologyInputCursor value: Validate(value); break;
             default: throw new InvalidOperationException($"No validator registered for {artifact.GetType().FullName}.");
         }
     }
