@@ -37,6 +37,9 @@ public static class CanonicalJson
         return stream.ToArray();
     }
 
+    public static string Sha256Reference(ReadOnlySpan<byte> bytes) =>
+        "sha256:" + Convert.ToHexStringLower(SHA256.HashData(bytes));
+
     public static T DeserializeStrict<T>(ReadOnlySpan<byte> bytes)
     {
         StrictJson.Preflight(bytes);
@@ -143,4 +146,3 @@ public static class StrictJson
         }
     }
 }
-
