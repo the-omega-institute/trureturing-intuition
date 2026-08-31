@@ -9,5 +9,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="../fixtures/certified-topology.v1.json" Link="fixtures/certified-topology.v1.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../fixtures/topology-atlas.v1.json" Link="fixtures/topology-atlas.v1.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
