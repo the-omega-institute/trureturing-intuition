@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-episode.v1",
+  "title": "Deterministically normalized research episode from one human structural observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "episode_id",
+    "episode_content"
+  ],
+  "properties": {
+    "schema": {
+      "const": "structure-edit-episode.v1"
+    },
+    "episode_id": {
+      "$ref": "#/$defs/digest"
+    },
+    "episode_content": {
+      "$ref": "#/$defs/content"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "nodeIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "clusterIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/clusterId"
+      }
+    },
+    "selectedEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dependency_id", "dependent_id"],
+      "properties": {
+        "dependency_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "dependent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_ref",
+        "observation_receipt_ref",
+        "topology_atlas_input_receipt_ref",
+        "truth_release_digest",
+        "certified_topology_digest",
+        "topology_atlas_digest",
+        "pages_conformation_digest",
+        "selection_kind",
+        "selected_node_ids",
+        "selected_cluster_ids",
+        "selected_edges",
+        "selected_path_ref",
+        "gesture_kind",
+        "allowed_edit_kinds",
+        "candidate_limit",
+        "human_intent",
+        "privacy_class",
+        "normalization_profile",
+        "source_observed_at"
+      ],
+      "properties": {
+        "observation_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "observation_receipt_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_atlas_input_receipt_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "truth_release_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "certified_topology_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_atlas_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "pages_conformation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "selection_kind": {
+          "enum": [
+            "single-node",
+            "node-pair",
+            "node-set",
+            "single-cluster",
+            "cluster-pair",
+            "cluster-set",
+            "mixed-selection",
+            "certified-path",
+            "frontier-region"
+          ]
+        },
+        "selected_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "selected_cluster_ids": {
+          "$ref": "#/$defs/clusterIdArray"
+        },
+        "selected_edges": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/selectedEdge"
+          }
+        },
+        "selected_path_ref": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gesture_kind": {
+          "enum": [
+            "selection",
+            "compare",
+            "bring-together",
+            "cluster-peel",
+            "path-inspection",
+            "frontier-mark"
+          ]
+        },
+        "allowed_edit_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "acquire-evidence",
+              "add-abstraction",
+              "add-bridge",
+              "add-counterexample",
+              "add-definition-package",
+              "add-premise",
+              "add-subgoal",
+              "change-representation",
+              "register-open-question",
+              "reroot"
+            ]
+          }
+        },
+        "candidate_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "human_intent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "privacy_class": {
+          "enum": [
+            "private-research",
+            "team-research",
+            "public-candidate"
+          ]
+        },
+        "normalization_profile": {
+          "const": "human-structure-episode-v1"
+        },
+        "source_observed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
