@@ -21,6 +21,11 @@ public static Task<int> RunAsync(string[] args)
                     Required(options, "publication"),
                     Required(options, "topology"),
                     Required(options, "cursor")),
+                "register-topology-atlas-input" => RegisterTopologyAtlasInput(
+                    store,
+                    Required(options, "publication"),
+                    Required(options, "atlas"),
+                    Required(options, "cursor")),
                 "register-human-candidate" => RegisterHumanCandidate(
                     store,
                     Required(options, "input")),
@@ -78,6 +83,9 @@ public static Task<int> RunAsync(string[] args)
             "topology-publication" => store.Put(CanonicalJson.DeserializeStrict<TopologyPublicationCoordinate>(bytes)),
             "topology-input-receipt" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyInputReceipt>(bytes)),
             "topology-input-cursor" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyInputCursor>(bytes)),
+            "topology-atlas-publication" => store.Put(CanonicalJson.DeserializeStrict<TopologyAtlasPublicationCoordinate>(bytes)),
+            "topology-atlas-input-receipt" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasInputReceipt>(bytes)),
+            "topology-atlas-input-cursor" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasInputCursor>(bytes)),
             "human-candidate" => store.Put(CanonicalJson.DeserializeStrict<HumanResearchCandidate>(bytes)),
             "human-candidate-receipt" => store.Put(CanonicalJson.DeserializeStrict<HumanResearchCandidateReceipt>(bytes)),
             _ => throw new InvalidOperationException($"Unsupported store kind '{kind}'.")
