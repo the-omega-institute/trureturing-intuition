@@ -29,6 +29,10 @@ public static Task<int> RunAsync(string[] args)
                 "register-human-candidate" => RegisterHumanCandidate(
                     store,
                     Required(options, "input")),
+                "register-human-structure-observation" =>
+                    RegisterHumanStructureObservation(
+                        store,
+                        Required(options, "input")),
                 "proposal-set" => ProposalSet(store, Required(options, "state-ref"), Many(options, "input")),
                 "critique-set" => CritiqueSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Many(options, "input")),
                 "valuation-set" => ValuationSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Required(options, "critique-set-ref"), Many(options, "input")),
@@ -88,6 +92,8 @@ public static Task<int> RunAsync(string[] args)
             "topology-atlas-input-cursor" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasInputCursor>(bytes)),
             "human-candidate" => store.Put(CanonicalJson.DeserializeStrict<HumanResearchCandidate>(bytes)),
             "human-candidate-receipt" => store.Put(CanonicalJson.DeserializeStrict<HumanResearchCandidateReceipt>(bytes)),
+            "human-structure-observation" => store.Put(CanonicalJson.DeserializeStrict<HumanStructureObservation>(bytes)),
+            "human-structure-observation-receipt" => store.Put(CanonicalJson.DeserializeStrict<HumanStructureObservationReceipt>(bytes)),
             _ => throw new InvalidOperationException($"Unsupported store kind '{kind}'.")
         };
         WriteResult(new Dictionary<string, object?> { ["artifact_ref"] = reference });
