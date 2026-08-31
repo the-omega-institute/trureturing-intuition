@@ -198,7 +198,7 @@ public static class HumanStructureObservationRegistrar
         {
             directory = directory.Parent;
         }
-        return directory?.Parent?.Parent?.FullName
+        return directory?.Parent?.FullName
             ?? throw new InvalidOperationException(
                 "Cannot establish the Intuition artifact-store root.");
     }
