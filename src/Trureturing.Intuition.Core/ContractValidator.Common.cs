@@ -51,6 +51,10 @@ public static void Validate(object artifact)
             case HumanResearchCandidate value: Validate(value); break;
             case HumanResearchCandidateContent value: Validate(value); break;
             case HumanResearchCandidateReceipt value: Validate(value); break;
+            case HumanStructureObservation value: Validate(value); break;
+            case HumanStructureObservationContent value: Validate(value); break;
+            case HumanStructureSelection value: Validate(value); break;
+            case HumanStructureObservationReceipt value: Validate(value); break;
             default: throw new InvalidOperationException($"No validator registered for {artifact.GetType().FullName}.");
         }
     }
