@@ -1,0 +1,191 @@
+{
+  "schema_version": "topology-atlas.v1",
+  "truth_release_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "certified_topology_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+  "certified_algorithm_profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "algorithm_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "producer_commit": "cccccccccccccccccccccccccccccccccccccccc",
+  "clusters": [
+    {
+      "cluster_id": "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "parent_cluster_id": null,
+      "level": 0,
+      "level_name": "weak-component",
+      "member_node_ids": ["node-a", "node-b", "node-c"],
+      "representative_node_ids": ["node-b"],
+      "boundary_node_ids": [],
+      "root_node_ids": ["node-a"],
+      "depth_min": 0,
+      "depth_max": 2,
+      "internal_edge_count": 2,
+      "external_edge_count": 0
+    },
+    {
+      "cluster_id": "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "parent_cluster_id": "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "level": 1,
+      "level_name": "bridge-block",
+      "member_node_ids": ["node-a", "node-b", "node-c"],
+      "representative_node_ids": ["node-b"],
+      "boundary_node_ids": ["node-b", "node-c"],
+      "root_node_ids": ["node-a"],
+      "depth_min": 0,
+      "depth_max": 2,
+      "internal_edge_count": 2,
+      "external_edge_count": 0
+    },
+    {
+      "cluster_id": "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "parent_cluster_id": "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "level": 2,
+      "level_name": "affinity-community",
+      "member_node_ids": ["node-a", "node-b"],
+      "representative_node_ids": ["node-b"],
+      "boundary_node_ids": ["node-b"],
+      "root_node_ids": ["node-a"],
+      "depth_min": 0,
+      "depth_max": 1,
+      "internal_edge_count": 1,
+      "external_edge_count": 1
+    },
+    {
+      "cluster_id": "cluster:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "parent_cluster_id": "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "level": 2,
+      "level_name": "affinity-community",
+      "member_node_ids": ["node-c"],
+      "representative_node_ids": ["node-c"],
+      "boundary_node_ids": ["node-c"],
+      "root_node_ids": ["node-c"],
+      "depth_min": 2,
+      "depth_max": 2,
+      "internal_edge_count": 0,
+      "external_edge_count": 1
+    }
+  ],
+  "node_structure": [
+    {
+      "node_id": "node-a",
+      "component_id": "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "cluster_path": [
+        "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "articulation_status": "ordinary",
+      "dominator_coverage_count": 3,
+      "dominator_coverage": { "numerator": 1, "denominator": 1 },
+      "boundary_score": { "numerator": 0, "denominator": 1 },
+      "k_core_level": 1,
+      "depth": 0,
+      "height": 2,
+      "structural_role": "foundation"
+    },
+    {
+      "node_id": "node-b",
+      "component_id": "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "cluster_path": [
+        "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "articulation_status": "articulation-point",
+      "dominator_coverage_count": 2,
+      "dominator_coverage": { "numerator": 2, "denominator": 3 },
+      "boundary_score": { "numerator": 1, "denominator": 2 },
+      "k_core_level": 1,
+      "depth": 1,
+      "height": 1,
+      "structural_role": "bridge"
+    },
+    {
+      "node_id": "node-c",
+      "component_id": "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "cluster_path": [
+        "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "cluster:sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "articulation_status": "ordinary",
+      "dominator_coverage_count": 1,
+      "dominator_coverage": { "numerator": 1, "denominator": 3 },
+      "boundary_score": { "numerator": 1, "denominator": 1 },
+      "k_core_level": 1,
+      "depth": 2,
+      "height": 0,
+      "structural_role": "frontier-adjacent"
+    }
+  ],
+  "edge_structure": [
+    {
+      "dependency_id": "node-a",
+      "dependent_id": "node-b",
+      "edge_betweenness": { "numerator": 1, "denominator": 1 },
+      "is_cut_bridge": false,
+      "cluster_relation": "intra-cluster",
+      "source_cluster_id": "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "target_cluster_id": "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "dependency_span": 1
+    },
+    {
+      "dependency_id": "node-b",
+      "dependent_id": "node-c",
+      "edge_betweenness": { "numerator": 2, "denominator": 1 },
+      "is_cut_bridge": true,
+      "cluster_relation": "inter-cluster",
+      "source_cluster_id": "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "target_cluster_id": "cluster:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "dependency_span": 1
+    }
+  ],
+  "structural_affinities": [
+    {
+      "source_node_id": "node-a",
+      "neighbor_node_id": "node-b",
+      "rank": 1,
+      "mutual_top_k": true,
+      "direct_dependency": true,
+      "shared_ancestor_jaccard": { "numerator": 0, "denominator": 1 },
+      "shared_descendant_jaccard": { "numerator": 1, "denominator": 2 },
+      "undirected_path_distance": 1,
+      "deepest_common_prerequisite_depth": null,
+      "combined_rank": { "numerator": 3, "denominator": 4 }
+    },
+    {
+      "source_node_id": "node-b",
+      "neighbor_node_id": "node-a",
+      "rank": 1,
+      "mutual_top_k": true,
+      "direct_dependency": true,
+      "shared_ancestor_jaccard": { "numerator": 0, "denominator": 1 },
+      "shared_descendant_jaccard": { "numerator": 1, "denominator": 2 },
+      "undirected_path_distance": 1,
+      "deepest_common_prerequisite_depth": null,
+      "combined_rank": { "numerator": 3, "denominator": 4 }
+    }
+  ],
+  "hierarchy": [
+    {
+      "level": 0,
+      "name": "weak-component",
+      "cluster_ids": [
+        "cluster:sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      ]
+    },
+    {
+      "level": 1,
+      "name": "bridge-block",
+      "cluster_ids": [
+        "cluster:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "affinity-community",
+      "cluster_ids": [
+        "cluster:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "cluster:sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      ]
+    }
+  ]
+}
