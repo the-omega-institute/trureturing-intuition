@@ -205,25 +205,22 @@ public static class StructureEditEpisodeNormalizer
         }
         int nodes = selection.SelectedNodeIds.Count;
         int clusters = selection.SelectedClusterIds.Count;
-        bool hasOther = selection.SelectedEdges.Count > 0;
-        if (clusters == 0 && !hasOther)
+        if (clusters == 0 && nodes > 0)
         {
             return nodes switch
             {
                 1 => "single-node",
                 2 => "node-pair",
-                _ when nodes > 2 => "node-set",
-                _ => "mixed-selection"
+                _ => "node-set"
             };
         }
-        if (nodes == 0 && !hasOther)
+        if (nodes == 0 && clusters > 0)
         {
             return clusters switch
             {
                 1 => "single-cluster",
                 2 => "cluster-pair",
-                _ when clusters > 2 => "cluster-set",
-                _ => "mixed-selection"
+                _ => "cluster-set"
             };
         }
         return "mixed-selection";
