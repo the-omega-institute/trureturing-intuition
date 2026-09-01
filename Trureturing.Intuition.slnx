@@ -3,5 +3,8 @@
   <Project Path="src/Trureturing.Intuition.Cli/Trureturing.Intuition.Cli.csproj" />
   <Project Path="tests/Trureturing.Intuition.Tests/Trureturing.Intuition.Tests.csproj" />
   <Project Path="tests/Trureturing.Intuition.ArchitectureTests/Trureturing.Intuition.ArchitectureTests.csproj" />
+  <Project Path="tests/Trureturing.Intuition.ResearchInputTests/Trureturing.Intuition.ResearchInputTests.csproj" />
   <Project Path="tests/Trureturing.Intuition.HumanObservationTests/Trureturing.Intuition.HumanObservationTests.csproj" />
+  <Project Path="tests/Trureturing.Intuition.StructureEpisodeTests/Trureturing.Intuition.StructureEpisodeTests.csproj" />
+  <Project Path="tests/Trureturing.Intuition.EvidenceInputTests/Trureturing.Intuition.EvidenceInputTests.csproj" />
 </Solution>
