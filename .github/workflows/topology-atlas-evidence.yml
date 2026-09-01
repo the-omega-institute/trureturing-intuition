@@ -1,0 +1,44 @@
+name: topology-atlas-evidence-gate
+
+on:
+  pull_request:
+    paths:
+      - "src/Trureturing.Intuition.Core/TopologyAtlasEvidence*.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.TopologyAtlasEvidenceInput.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.Common.cs"
+      - "src/Trureturing.Intuition.Core/ReadOnlySequenceByteExtensions.cs"
+      - "tools/Trureturing.Intuition.TopologyAtlasEvidenceInput/**"
+      - "tests/Trureturing.Intuition.TopologyAtlasEvidenceInputTests/**"
+      - "contracts/topology-atlas-evidence-publication.v1.schema.json"
+      - ".fkst/local-packages/trureturing-intuition/raisers/topology_atlas_evidence_inputs.lua"
+      - ".fkst/local-packages/trureturing-intuition/departments/topology-atlas-evidence-intake/**"
+      - ".github/workflows/topology-atlas-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build Core with warnings as errors
+        run: >-
+          dotnet build
+          src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj
+          -c Release
+          --warnaserror
+      - name: Build evidence registrar with warnings as errors
+        run: >-
+          dotnet build
+          tools/Trureturing.Intuition.TopologyAtlasEvidenceInput/Trureturing.Intuition.TopologyAtlasEvidenceInput.csproj
+          -c Release
+          --warnaserror
+      - name: Run exact evidence registration and hostile-input tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.TopologyAtlasEvidenceInputTests
+          -c Release
