@@ -1,0 +1,10 @@
+<Project>
+  <Target Name="BuildTopologyAtlasEvidenceCli"
+          AfterTargets="Build"
+          Condition="'$(MSBuildProjectName)' == 'Trureturing.Intuition.Cli' and '$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)src/Trureturing.Intuition.AtlasEvidenceCli/Trureturing.Intuition.AtlasEvidenceCli.csproj"
+             Targets="Build"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);ContinuousIntegrationBuild=$(ContinuousIntegrationBuild)" />
+  </Target>
+</Project>
