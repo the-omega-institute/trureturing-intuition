@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-candidate.v1",
+  "title": "Stable advisory candidate derived from a structure edit episode",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidate_id", "candidate_content"],
+  "properties": {
+    "schema": { "const": "structure-edit-candidate.v1" },
+    "candidate_id": { "$ref": "#/$defs/digest" },
+    "candidate_content": { "$ref": "#/$defs/content" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonEmpty" }
+    },
+    "clusterArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/clusterId" }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_dependency_id",
+        "release_dependent_id",
+        "stable_dependency_id",
+        "stable_dependent_id"
+      ],
+      "properties": {
+        "release_dependency_id": { "$ref": "#/$defs/nonEmpty" },
+        "release_dependent_id": { "$ref": "#/$defs/nonEmpty" },
+        "stable_dependency_id": { "$ref": "#/$defs/nonEmpty" },
+        "stable_dependent_id": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_ref",
+        "episode_id",
+        "observation_ref",
+        "topology_atlas_evidence_input_receipt_ref",
+        "truth_release_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "edit_kind",
+        "release_node_ids",
+        "stable_node_ids",
+        "selected_cluster_ids",
+        "selected_edges",
+        "selected_path_ref",
+        "semantic_question",
+        "proposed_change",
+        "falsification_condition",
+        "counterfactual_eligibility",
+        "suggested_patch_shape",
+        "generation_profile",
+        "authority"
+      ],
+      "properties": {
+        "episode_ref": { "$ref": "#/$defs/digest" },
+        "episode_id": { "$ref": "#/$defs/digest" },
+        "observation_ref": { "$ref": "#/$defs/digest" },
+        "topology_atlas_evidence_input_receipt_ref": { "$ref": "#/$defs/digest" },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_evidence_digest": { "$ref": "#/$defs/digest" },
+        "edit_kind": {
+          "enum": [
+            "acquire-evidence",
+            "add-abstraction",
+            "add-bridge",
+            "add-counterexample",
+            "add-definition-package",
+            "add-premise",
+            "add-subgoal",
+            "change-representation",
+            "register-open-question",
+            "reroot"
+          ]
+        },
+        "release_node_ids": { "$ref": "#/$defs/stringArray" },
+        "stable_node_ids": { "$ref": "#/$defs/stringArray" },
+        "selected_cluster_ids": { "$ref": "#/$defs/clusterArray" },
+        "selected_edges": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/edge" }
+        },
+        "selected_path_ref": {
+          "oneOf": [
+            { "$ref": "#/$defs/digest" },
+            { "type": "null" }
+          ]
+        },
+        "semantic_question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "proposed_change": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "falsification_condition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "counterfactual_eligibility": {
+          "enum": [
+            "graph-patch-required",
+            "evidence-acquisition",
+            "question-registration"
+          ]
+        },
+        "suggested_patch_shape": {
+          "enum": ["add-node", "add-edge", "remove-edge", "mixed", "none"]
+        },
+        "generation_profile": { "const": "structure-edit-candidate-v1" },
+        "authority": { "const": "advisory" }
+      }
+    }
+  }
+}
