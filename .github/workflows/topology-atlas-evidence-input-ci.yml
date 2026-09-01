@@ -1,0 +1,56 @@
+name: topology-atlas-evidence-input-ci
+
+on:
+  pull_request:
+    paths:
+      - "src/Trureturing.Intuition.Core/TopologyAtlasEvidence*.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.TopologyAtlasEvidenceInput.cs"
+      - "src/Trureturing.Intuition.AtlasEvidenceCli/**"
+      - "tests/Trureturing.Intuition.AtlasEvidenceInputTests/**"
+      - "contracts/topology-atlas-evidence-*.schema.json"
+      - ".fkst/local-packages/trureturing-intuition/raisers/topology_atlas_evidence_inputs.lua"
+      - ".fkst/local-packages/trureturing-intuition/departments/topology-atlas-evidence-intake/**"
+      - "Directory.Build.targets"
+      - ".github/workflows/topology-atlas-evidence-input-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build exact evidence registrar with warnings as errors
+        run: >-
+          dotnet build
+          src/Trureturing.Intuition.AtlasEvidenceCli/Trureturing.Intuition.AtlasEvidenceCli.csproj
+          -c Release
+          --warnaserror
+      - name: Run atlas evidence input and hostile-data harness
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.AtlasEvidenceInputTests
+          -c Release
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate closed JSON schemas
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          paths = (
+              Path("contracts/topology-atlas-evidence-publication.v1.schema.json"),
+              Path("contracts/topology-atlas-evidence-input-receipt.v1.schema.json"),
+              Path("contracts/topology-atlas-evidence-input-cursor.v1.schema.json"),
+          )
+          for path in paths:
+              value = json.loads(path.read_text(encoding="utf-8"))
+              assert value["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+              assert value["additionalProperties"] is False
+          PY

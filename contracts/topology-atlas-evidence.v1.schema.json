@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topology-atlas-evidence.v1",
+  "title": "Trureturing topology atlas evidence v1",
+  "description": "Deterministic stable identities, structural traits, cluster interfaces, and bounded affinity witnesses derived from one exact topology atlas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "truth_release_digest",
+    "certified_topology_digest",
+    "topology_atlas_digest",
+    "algorithm_profile_digest",
+    "producer_commit",
+    "witness_limit",
+    "node_identities",
+    "node_traits",
+    "cluster_interfaces",
+    "affinity_witnesses"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "topology-atlas-evidence.v1"
+    },
+    "truth_release_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "certified_topology_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "topology_atlas_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "algorithm_profile_digest": {
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "producer_commit": {
+      "$ref": "#/$defs/gitCommit"
+    },
+    "witness_limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "node_identities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nodeIdentity"
+      }
+    },
+    "node_traits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nodeTraits"
+      }
+    },
+    "cluster_interfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/clusterInterface"
+      }
+    },
+    "affinity_witnesses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/affinityWitness"
+      }
+    }
+  },
+  "$defs": {
+    "sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "edgeId": {
+      "type": "string",
+      "pattern": "^edge:sha256:[0-9a-f]{64}$"
+    },
+    "interfaceId": {
+      "type": "string",
+      "pattern": "^interface:sha256:[0-9a-f]{64}$"
+    },
+    "nodeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodeIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nodeId"
+      }
+    },
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "reducedNonNegativeRational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "nodeIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "stable_node_id",
+        "identity_basis",
+        "gid",
+        "source_path",
+        "module_name"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "stable_node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "identity_basis": {
+          "enum": [
+            "truth-gid",
+            "node-id-fallback"
+          ]
+        },
+        "gid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "source_path": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "module_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "traitEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trait",
+        "rule",
+        "integer_value",
+        "rational_value",
+        "witness_node_ids"
+      ],
+      "properties": {
+        "trait": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "rule": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "integer_value": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rational_value": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reducedNonNegativeRational"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "witness_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        }
+      }
+    },
+    "nodeTraits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "stable_node_id",
+        "primary_role",
+        "structural_traits",
+        "evidence"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "stable_node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "primary_role": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "structural_traits": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/stringArray"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/traitEvidence"
+          }
+        }
+      }
+    },
+    "interfaceEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "dependency_id",
+        "dependent_id",
+        "is_cut_bridge",
+        "edge_betweenness",
+        "dependency_span"
+      ],
+      "properties": {
+        "edge_id": {
+          "$ref": "#/$defs/edgeId"
+        },
+        "dependency_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "dependent_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "is_cut_bridge": {
+          "type": "boolean"
+        },
+        "edge_betweenness": {
+          "$ref": "#/$defs/reducedNonNegativeRational"
+        },
+        "dependency_span": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "clusterInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interface_id",
+        "source_cluster_id",
+        "target_cluster_id",
+        "certified_edges",
+        "source_boundary_node_ids",
+        "target_boundary_node_ids",
+        "cut_bridge_edge_ids",
+        "total_edge_betweenness",
+        "dependency_span_min",
+        "dependency_span_max"
+      ],
+      "properties": {
+        "interface_id": {
+          "$ref": "#/$defs/interfaceId"
+        },
+        "source_cluster_id": {
+          "$ref": "#/$defs/clusterId"
+        },
+        "target_cluster_id": {
+          "$ref": "#/$defs/clusterId"
+        },
+        "certified_edges": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/interfaceEdge"
+          }
+        },
+        "source_boundary_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "target_boundary_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "cut_bridge_edge_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/edgeId"
+          }
+        },
+        "total_edge_betweenness": {
+          "$ref": "#/$defs/reducedNonNegativeRational"
+        },
+        "dependency_span_min": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dependency_span_max": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "affinityWitness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "neighbor_node_id",
+        "rank",
+        "shared_prerequisite_witness_ids",
+        "shared_dependent_witness_ids",
+        "deepest_common_prerequisite_ids"
+      ],
+      "properties": {
+        "source_node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "neighbor_node_id": {
+          "$ref": "#/$defs/nodeId"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "shared_prerequisite_witness_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "shared_dependent_witness_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "deepest_common_prerequisite_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        }
+      }
+    }
+  }
+}

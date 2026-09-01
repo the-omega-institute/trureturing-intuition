@@ -26,6 +26,12 @@ public static Task<int> RunAsync(string[] args)
                     Required(options, "publication"),
                     Required(options, "atlas"),
                     Required(options, "cursor")),
+                "register-topology-atlas-evidence-input" =>
+                    RegisterTopologyAtlasEvidenceInput(
+                        store,
+                        Required(options, "publication"),
+                        Required(options, "evidence"),
+                        Required(options, "cursor")),
                 "register-human-candidate" => RegisterHumanCandidate(
                     store,
                     Required(options, "input")),
@@ -33,6 +39,11 @@ public static Task<int> RunAsync(string[] args)
                     RegisterHumanStructureObservation(
                         store,
                         Required(options, "input")),
+                "normalize-structure-edit-episode" =>
+                    NormalizeStructureEditEpisode(
+                        store,
+                        Required(options, "observation-ref"),
+                        Required(options, "observation-receipt-ref")),
                 "proposal-set" => ProposalSet(store, Required(options, "state-ref"), Many(options, "input")),
                 "critique-set" => CritiqueSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Many(options, "input")),
                 "valuation-set" => ValuationSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Required(options, "critique-set-ref"), Many(options, "input")),
@@ -90,10 +101,15 @@ public static Task<int> RunAsync(string[] args)
             "topology-atlas-publication" => store.Put(CanonicalJson.DeserializeStrict<TopologyAtlasPublicationCoordinate>(bytes)),
             "topology-atlas-input-receipt" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasInputReceipt>(bytes)),
             "topology-atlas-input-cursor" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasInputCursor>(bytes)),
+            "topology-atlas-evidence-publication" => store.Put(CanonicalJson.DeserializeStrict<TopologyAtlasEvidencePublicationCoordinate>(bytes)),
+            "topology-atlas-evidence-input-receipt" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasEvidenceInputReceipt>(bytes)),
+            "topology-atlas-evidence-input-cursor" => store.Put(CanonicalJson.DeserializeStrict<IntuitionTopologyAtlasEvidenceInputCursor>(bytes)),
             "human-candidate" => store.Put(CanonicalJson.DeserializeStrict<HumanResearchCandidate>(bytes)),
             "human-candidate-receipt" => store.Put(CanonicalJson.DeserializeStrict<HumanResearchCandidateReceipt>(bytes)),
             "human-structure-observation" => store.Put(CanonicalJson.DeserializeStrict<HumanStructureObservation>(bytes)),
             "human-structure-observation-receipt" => store.Put(CanonicalJson.DeserializeStrict<HumanStructureObservationReceipt>(bytes)),
+            "structure-edit-episode" => store.Put(CanonicalJson.DeserializeStrict<StructureEditEpisode>(bytes)),
+            "structure-edit-episode-receipt" => store.Put(CanonicalJson.DeserializeStrict<StructureEditEpisodeReceipt>(bytes)),
             _ => throw new InvalidOperationException($"Unsupported store kind '{kind}'.")
         };
         WriteResult(new Dictionary<string, object?> { ["artifact_ref"] = reference });

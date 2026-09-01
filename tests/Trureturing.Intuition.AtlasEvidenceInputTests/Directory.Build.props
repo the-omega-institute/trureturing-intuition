@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.Fixed.cs" />
+  </ItemGroup>
+</Project>
