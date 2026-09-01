@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-graph-patch.v1",
+  "title": "Explicit advisory graph patch submitted for Topology counterfactual evaluation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "patch_id", "patch_content"],
+  "properties": {
+    "schema": { "const": "structure-edit-graph-patch.v1" },
+    "patch_id": { "$ref": "#/$defs/digest" },
+    "patch_content": { "$ref": "#/$defs/content" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "nullableString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ]
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "kind",
+        "node_id",
+        "stable_node_id",
+        "source_path",
+        "module_name",
+        "dependency_id",
+        "dependent_id",
+        "stable_dependency_id",
+        "stable_dependent_id"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        "kind": { "enum": ["add-node", "add-edge", "remove-edge"] },
+        "node_id": { "$ref": "#/$defs/nullableString" },
+        "stable_node_id": { "$ref": "#/$defs/nullableString" },
+        "source_path": { "$ref": "#/$defs/nullableString" },
+        "module_name": { "$ref": "#/$defs/nullableString" },
+        "dependency_id": { "$ref": "#/$defs/nullableString" },
+        "dependent_id": { "$ref": "#/$defs/nullableString" },
+        "stable_dependency_id": { "$ref": "#/$defs/nullableString" },
+        "stable_dependent_id": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_ref",
+        "candidate_id",
+        "truth_release_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "operations",
+        "assumption_refs",
+        "rationale",
+        "explicitly_submitted_for_counterfactual",
+        "authority"
+      ],
+      "properties": {
+        "candidate_ref": { "$ref": "#/$defs/digest" },
+        "candidate_id": { "$ref": "#/$defs/digest" },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_evidence_digest": { "$ref": "#/$defs/digest" },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/operation" }
+        },
+        "assumption_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/digest" }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "explicitly_submitted_for_counterfactual": { "const": true },
+        "authority": { "const": "advisory" }
+      }
+    }
+  }
+}
