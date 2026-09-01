@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-candidate-set-receipt.v1",
+  "title": "Immutable receipt for one deterministic structure edit candidate set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "candidate_set_ref",
+    "candidate_set_id",
+    "episode_ref",
+    "episode_id",
+    "topology_atlas_evidence_input_receipt_ref",
+    "truth_release_digest",
+    "topology_atlas_digest",
+    "topology_atlas_evidence_digest",
+    "candidate_refs",
+    "generation_profile",
+    "authority"
+  ],
+  "properties": {
+    "schema": { "const": "structure-edit-candidate-set-receipt.v1" },
+    "candidate_set_ref": { "$ref": "#/$defs/digest" },
+    "candidate_set_id": { "$ref": "#/$defs/digest" },
+    "episode_ref": { "$ref": "#/$defs/digest" },
+    "episode_id": { "$ref": "#/$defs/digest" },
+    "topology_atlas_evidence_input_receipt_ref": { "$ref": "#/$defs/digest" },
+    "truth_release_digest": { "$ref": "#/$defs/digest" },
+    "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+    "topology_atlas_evidence_digest": { "$ref": "#/$defs/digest" },
+    "candidate_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/digest" }
+    },
+    "generation_profile": { "const": "structure-edit-candidate-v1" },
+    "authority": { "const": "advisory" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}
