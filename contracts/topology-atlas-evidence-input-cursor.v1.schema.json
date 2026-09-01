@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intuition-topology-atlas-evidence-input-cursor.v1",
+  "title": "Durable cursor for the latest registered Topology Atlas evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "receipt_ref",
+    "truth_release_digest",
+    "topology_atlas_digest",
+    "evidence_digest",
+    "source_commit",
+    "source_tree"
+  ],
+  "properties": {
+    "schema": {
+      "const": "intuition-topology-atlas-evidence-input-cursor.v1"
+    },
+    "receipt_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "truth_release_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "topology_atlas_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_commit": {
+      "$ref": "#/$defs/gitObject"
+    },
+    "source_tree": {
+      "$ref": "#/$defs/gitObject"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gitObject": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    }
+  }
+}
