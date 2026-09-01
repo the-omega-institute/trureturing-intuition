@@ -22,6 +22,7 @@ function pipeline(event)
   }, 300)
 
   raise("intuition_human_observation_ready", {
+    repo_root = root,
     observation_ref = result.observation_ref,
     receipt_ref = result.receipt_ref,
     truth_release_digest = result.truth_release_digest,
