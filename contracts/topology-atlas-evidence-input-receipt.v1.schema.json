@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intuition-topology-atlas-evidence-input-receipt.v1",
+  "title": "Immutable receipt for one exact Topology Atlas evidence input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "publication_ref",
+    "evidence_ref",
+    "topology_atlas_input_receipt_ref",
+    "truth_release_digest",
+    "certified_topology_digest",
+    "topology_atlas_digest",
+    "evidence_digest",
+    "evidence_algorithm_profile_digest",
+    "source_commit",
+    "source_tree",
+    "producer_commit"
+  ],
+  "properties": {
+    "schema": {
+      "const": "intuition-topology-atlas-evidence-input-receipt.v1"
+    },
+    "publication_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "topology_atlas_input_receipt_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "truth_release_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "certified_topology_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "topology_atlas_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence_algorithm_profile_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_commit": {
+      "$ref": "#/$defs/gitObject"
+    },
+    "source_tree": {
+      "$ref": "#/$defs/gitObject"
+    },
+    "producer_commit": {
+      "$ref": "#/$defs/gitCommit"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gitObject": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  }
+}
