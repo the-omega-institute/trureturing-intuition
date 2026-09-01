@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intuition-topology-atlas-evidence-input.v1",
+  "title": "Intuition topology atlas evidence research input contracts",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "git_object": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "topology_atlas_input_receipt_ref",
+        "truth_release_digest",
+        "certified_topology_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "source_commit",
+        "source_tree",
+        "certified_algorithm_profile_digest",
+        "atlas_algorithm_profile_digest",
+        "evidence_algorithm_profile_digest",
+        "producer_commit"
+      ],
+      "properties": {
+        "schema": {
+          "const": "trureturing.topology-atlas-evidence-publication.v1"
+        },
+        "topology_atlas_input_receipt_ref": {
+          "$ref": "#/$defs/sha256"
+        },
+        "truth_release_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "certified_topology_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_evidence_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/git_object"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/git_object"
+        },
+        "certified_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "atlas_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "producer_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "publication_ref",
+        "evidence_ref",
+        "topology_atlas_input_receipt_ref",
+        "truth_release_digest",
+        "certified_topology_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "source_commit",
+        "source_tree",
+        "certified_algorithm_profile_digest",
+        "atlas_algorithm_profile_digest",
+        "evidence_algorithm_profile_digest",
+        "producer_commit"
+      ],
+      "properties": {
+        "schema": {
+          "const": "intuition-topology-atlas-evidence-input-receipt.v1"
+        },
+        "publication_ref": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_input_receipt_ref": {
+          "$ref": "#/$defs/sha256"
+        },
+        "truth_release_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "certified_topology_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_evidence_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/git_object"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/git_object"
+        },
+        "certified_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "atlas_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "producer_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "receipt_ref",
+        "topology_atlas_input_receipt_ref",
+        "truth_release_digest",
+        "certified_topology_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "source_commit",
+        "source_tree",
+        "evidence_algorithm_profile_digest",
+        "producer_commit"
+      ],
+      "properties": {
+        "schema": {
+          "const": "intuition-topology-atlas-evidence-input-cursor.v1"
+        },
+        "receipt_ref": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_input_receipt_ref": {
+          "$ref": "#/$defs/sha256"
+        },
+        "truth_release_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "certified_topology_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topology_atlas_evidence_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_commit": {
+          "$ref": "#/$defs/git_object"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/git_object"
+        },
+        "evidence_algorithm_profile_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "producer_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    }
+  }
+}
