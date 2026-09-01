@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Trureturing.Intuition.Core;
+using static TestCoordinates;
 
 var tests = new (string Name, Action Run)[]
 {
@@ -35,24 +36,6 @@ foreach ((string name, Action run) in tests)
 }
 Console.WriteLine($"{tests.Length - failed} passed, {failed} failed");
 return failed == 0 ? 0 : 1;
-
-static readonly string TruthReleaseDigest =
-    "sha256:" + new string('5', 64);
-static readonly string CertifiedTopologyDigest =
-    "sha256:" + new string('6', 64);
-static readonly string CertifiedProfileDigest =
-    "sha256:" + new string('a', 64);
-static readonly string AtlasProfileDigest =
-    "sha256:" + new string('b', 64);
-static readonly string EvidenceProfileDigest =
-    "sha256:" + new string('d', 64);
-static readonly string SourceCommit = new('1', 40);
-static readonly string SourceTree = new('2', 40);
-static readonly string ProducerCommit = new('c', 40);
-static readonly string RootCluster = Cluster('0');
-static readonly string BridgeCluster = Cluster('1');
-static readonly string SourceCluster = Cluster('2');
-static readonly string TargetCluster = Cluster('3');
 
 static byte[] AtlasFixture() => File.ReadAllBytes(Path.Combine(
     AppContext.BaseDirectory,
@@ -501,7 +484,7 @@ static void RejectsInvalidAffinityWitness()
     byte[] evidence = EvidenceBytes(atlas, root =>
     {
         root["affinity_witnesses"]![0]!["shared_dependent_witness_ids"] =
-            new JsonArray("node-b");
+            new JsonArray(JsonValue.Create("node-b"));
     });
     Assert.Throws(() =>
         TopologyAtlasEvidenceResearchInputRegistrar.Register(
@@ -598,9 +581,6 @@ static void CreatesNoCandidateArtifacts()
     Assert.DoesNotContain("formalization-request", artifacts);
     Assert.DoesNotContain("research-attempt", artifacts);
 }
-
-static string Cluster(char value) =>
-    "cluster:sha256:" + new string(value, 64);
 
 static string EdgeId(string dependencyId, string dependentId) =>
     "edge:sha256:" + HashText(
