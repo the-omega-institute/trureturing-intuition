@@ -16,7 +16,7 @@ end
 
 function pipeline(event)
   local payload = event.payload or {}
-  local root, err = core.repo_root(payload.repo_root)
+  local root, err = core.repo_root(required(payload.repo_root, "repo_root"))
   if not root then
     error("normalize-structure-observation: " .. tostring(err))
   end
@@ -29,6 +29,7 @@ function pipeline(event)
   }, 300)
 
   raise("intuition_structure_edit_episode_ready", {
+    repo_root = root,
     episode_ref = result.episode_ref,
     receipt_ref = result.receipt_ref,
     episode_id = result.episode_id,

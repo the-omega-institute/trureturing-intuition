@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-candidate-set.v1",
+  "title": "Content-addressed advisory structure edit candidate set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "candidate_set_id",
+    "candidate_set_content"
+  ],
+  "properties": {
+    "schema": {
+      "const": "structure-edit-candidate-set.v1"
+    },
+    "candidate_set_id": {
+      "$ref": "#/$defs/digest"
+    },
+    "candidate_set_content": {
+      "$ref": "#/$defs/setContent"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "interfaceId": {
+      "type": "string",
+      "pattern": "^interface:sha256:[0-9a-f]{64}$"
+    },
+    "nodeIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "clusterIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/clusterId"
+      }
+    },
+    "interfaceIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/interfaceId"
+      }
+    },
+    "textArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "affinityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "neighbor_node_id",
+        "rank"
+      ],
+      "properties": {
+        "source_node_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "neighbor_node_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
+    },
+    "candidateContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edit_kind",
+        "candidate_kind",
+        "claim_status",
+        "anchor_node_ids",
+        "anchor_stable_node_ids",
+        "anchor_cluster_ids",
+        "interface_evidence_ids",
+        "affinity_evidence",
+        "candidate_statement",
+        "representation_map",
+        "assumption_map",
+        "preserved_invariants",
+        "falsifier",
+        "verification_route",
+        "topology_lowering_status"
+      ],
+      "properties": {
+        "edit_kind": {
+          "$ref": "#/$defs/editKind"
+        },
+        "candidate_kind": {
+          "$ref": "#/$defs/candidateKind"
+        },
+        "claim_status": {
+          "const": "advisory"
+        },
+        "anchor_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "anchor_stable_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "anchor_cluster_ids": {
+          "$ref": "#/$defs/clusterIdArray"
+        },
+        "interface_evidence_ids": {
+          "$ref": "#/$defs/interfaceIdArray"
+        },
+        "affinity_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/affinityEvidence"
+          }
+        },
+        "candidate_statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "representation_map": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "assumption_map": {
+          "$ref": "#/$defs/textArray"
+        },
+        "preserved_invariants": {
+          "$ref": "#/$defs/textArray"
+        },
+        "falsifier": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "verification_route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "topology_lowering_status": {
+          "const": "unlowered"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "candidate_content"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_content": {
+          "$ref": "#/$defs/candidateContent"
+        }
+      }
+    },
+    "setContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_ref",
+        "episode_receipt_ref",
+        "topology_atlas_evidence_input_receipt_ref",
+        "truth_release_digest",
+        "certified_topology_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "generated_by",
+        "model_snapshot",
+        "generation_profile",
+        "candidates",
+        "generated_at"
+      ],
+      "properties": {
+        "episode_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "episode_receipt_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_atlas_evidence_input_receipt_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "truth_release_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "certified_topology_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_atlas_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_atlas_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "generated_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "model_snapshot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "generation_profile": {
+          "const": "structure-edit-candidate-v1"
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/candidate"
+          }
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "editKind": {
+      "enum": [
+        "acquire-evidence",
+        "add-abstraction",
+        "add-bridge",
+        "add-counterexample",
+        "add-definition-package",
+        "add-premise",
+        "add-subgoal",
+        "change-representation",
+        "register-open-question",
+        "reroot"
+      ]
+    },
+    "candidateKind": {
+      "enum": [
+        "evidence-acquisition",
+        "abstraction",
+        "bridge",
+        "counterexample",
+        "definition-package",
+        "premise-set",
+        "subgoal",
+        "representation-change",
+        "open-question",
+        "reroot"
+      ]
+    }
+  }
+}

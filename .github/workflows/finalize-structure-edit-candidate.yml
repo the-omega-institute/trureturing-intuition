@@ -1,0 +1,73 @@
+name: finalize-structure-edit-candidate
+
+on:
+  push:
+    branches:
+      - feat/structure-edit-candidates
+    paths:
+      - .github/workflows/finalize-structure-edit-candidate.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/structure-edit-candidates
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Repair precedence, validate, and annotate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin feat/structure-edit-candidates
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/Trureturing.Intuition.Core/ContractValidator.StructureEditCandidate.cs")
+          text = path.read_text(encoding="utf-8")
+          old = '''        if (candidateKind is StructureEditKinds.AddAbstraction
+            or StructureEditKinds.AddCounterexample
+            or StructureEditKinds.AddDefinitionPackage
+            or StructureEditKinds.AddPremise
+            or StructureEditKinds.AddSubgoal
+            or StructureEditKinds.ChangeRepresentation
+            or StructureEditKinds.RegisterOpenQuestion
+            && addedNodes == 0)'''
+          new = '''        if ((candidateKind is StructureEditKinds.AddAbstraction
+            or StructureEditKinds.AddCounterexample
+            or StructureEditKinds.AddDefinitionPackage
+            or StructureEditKinds.AddPremise
+            or StructureEditKinds.AddSubgoal
+            or StructureEditKinds.ChangeRepresentation
+            or StructureEditKinds.RegisterOpenQuestion)
+            && addedNodes == 0)'''
+          text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+          PY
+          dotnet build src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj -c Release --warnaserror
+          dotnet build tools/Trureturing.Intuition.StructureEditCandidate/Trureturing.Intuition.StructureEditCandidate.csproj -c Release --warnaserror
+          dotnet run --project tests/Trureturing.Intuition.StructureEditCandidateTests -c Release
+          dotnet run --project tests/Trureturing.Intuition.TopologyAtlasEvidenceInputTests -c Release
+          rm -f .github/workflows/finalize-structure-edit-candidate.yml
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(intuition): finalize typed structure edit candidates"
+          fi
+          for attempt in 1 2 3; do
+            if git push origin HEAD:feat/structure-edit-candidates; then break; fi
+            git pull --rebase origin feat/structure-edit-candidates
+            if [[ "$attempt" == 3 ]]; then exit 1; fi
+          done
+          pr="$(gh pr list --head feat/structure-edit-candidates --state open --json number --jq '.[0].number // empty')"
+          if [[ -n "$pr" ]]; then
+            gh pr comment "$pr" --body "Current-head validation passed: Core and registrar build with warnings as errors; episode algebra, candidate budget, stable identity closure, tamper refusal, and no-formalization tests pass."
+          fi

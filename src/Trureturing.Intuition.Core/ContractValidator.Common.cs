@@ -61,6 +61,14 @@ public static void Validate(object artifact)
             case StructureEditEpisode value: Validate(value); break;
             case StructureEditEpisodeContent value: Validate(value); break;
             case StructureEditEpisodeReceipt value: Validate(value); break;
+            case StructureEditCandidateDraftSet value: Validate(value); break;
+            case StructureEditCandidateDraft value: Validate(value); break;
+            case StructureEditCandidate value: Validate(value); break;
+            case StructureEditCandidateContent value: Validate(value); break;
+            case StructureEditCandidateSet value: Validate(value); break;
+            case StructureEditCandidateSetContent value: Validate(value); break;
+            case StructureEditCandidateSetReceipt value: Validate(value); break;
+            case StructureEditCandidateContext value: Validate(value); break;
             default: throw new InvalidOperationException($"No validator registered for {artifact.GetType().FullName}.");
         }
     }

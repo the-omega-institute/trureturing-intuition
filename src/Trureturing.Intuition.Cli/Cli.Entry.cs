@@ -44,6 +44,16 @@ public static Task<int> RunAsync(string[] args)
                         store,
                         Required(options, "observation-ref"),
                         Required(options, "observation-receipt-ref")),
+                "prepare-structure-edit-candidate-context" =>
+                    PrepareStructureEditCandidateContext(
+                        store,
+                        Required(options, "episode-ref"),
+                        Required(options, "episode-receipt-ref"),
+                        Required(options, "evidence-receipt-ref")),
+                "register-structure-edit-candidate-set" =>
+                    RegisterStructureEditCandidateSet(
+                        store,
+                        Required(options, "input")),
                 "proposal-set" => ProposalSet(store, Required(options, "state-ref"), Many(options, "input")),
                 "critique-set" => CritiqueSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Many(options, "input")),
                 "valuation-set" => ValuationSet(store, Required(options, "state-ref"), Required(options, "proposal-set-ref"), Required(options, "critique-set-ref"), Many(options, "input")),
@@ -110,6 +120,8 @@ public static Task<int> RunAsync(string[] args)
             "human-structure-observation-receipt" => store.Put(CanonicalJson.DeserializeStrict<HumanStructureObservationReceipt>(bytes)),
             "structure-edit-episode" => store.Put(CanonicalJson.DeserializeStrict<StructureEditEpisode>(bytes)),
             "structure-edit-episode-receipt" => store.Put(CanonicalJson.DeserializeStrict<StructureEditEpisodeReceipt>(bytes)),
+            "structure-edit-candidate-set" => store.Put(CanonicalJson.DeserializeStrict<StructureEditCandidateSet>(bytes)),
+            "structure-edit-candidate-set-receipt" => store.Put(CanonicalJson.DeserializeStrict<StructureEditCandidateSetReceipt>(bytes)),
             _ => throw new InvalidOperationException($"Unsupported store kind '{kind}'.")
         };
         WriteResult(new Dictionary<string, object?> { ["artifact_ref"] = reference });

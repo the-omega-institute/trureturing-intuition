@@ -1,0 +1,55 @@
+name: structure-edit-candidate-ci
+
+on:
+  pull_request:
+    paths:
+      - "src/Trureturing.Intuition.Core/StructureEditCandidate*.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.StructureEditCandidate.cs"
+      - "src/Trureturing.Intuition.StructureCandidateCli/**"
+      - "tests/Trureturing.Intuition.StructureCandidateTests/**"
+      - "contracts/structure-edit-candidate*.schema.json"
+      - ".fkst/local-packages/trureturing-intuition/raisers/structure_edit_candidate_requests.lua"
+      - ".fkst/local-packages/trureturing-intuition/departments/structure-edit-candidate-generator/**"
+      - "Directory.Build.targets"
+      - ".github/workflows/structure-edit-candidate-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build stable candidate generator with warnings as errors
+        run: >-
+          dotnet build
+          src/Trureturing.Intuition.StructureCandidateCli/Trureturing.Intuition.StructureCandidateCli.csproj
+          -c Release
+          --warnaserror
+      - name: Run deterministic and hostile candidate harness
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.StructureCandidateTests
+          -c Release
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate closed candidate schemas
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for path in (
+              Path("contracts/structure-edit-candidate.v1.schema.json"),
+              Path("contracts/structure-edit-candidate-set.v1.schema.json"),
+              Path("contracts/structure-edit-candidate-set-receipt.v1.schema.json"),
+          ):
+              value = json.loads(path.read_text(encoding="utf-8"))
+              assert value["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+              assert value["additionalProperties"] is False
+          PY
