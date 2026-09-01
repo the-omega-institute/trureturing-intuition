@@ -1,0 +1,51 @@
+name: finalize-topology-atlas-evidence
+
+on:
+  push:
+    branches:
+      - feat/topology-atlas-evidence-input
+    paths:
+      - .github/workflows/finalize-topology-atlas-evidence.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/topology-atlas-evidence-input
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Validate and finalize the stacked PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dotnet build src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj -c Release --warnaserror
+          dotnet build tools/Trureturing.Intuition.TopologyAtlasEvidenceInput/Trureturing.Intuition.TopologyAtlasEvidenceInput.csproj -c Release --warnaserror
+          dotnet run --project tests/Trureturing.Intuition.TopologyAtlasEvidenceInputTests -c Release
+          dotnet run --project tests/Trureturing.Intuition.Tests -c Release
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin feat/topology-atlas-evidence-input
+          rm -f .github/workflows/finalize-topology-atlas-evidence.yml
+          git add -A
+          git commit -m "chore(intuition): finalize Atlas evidence gate"
+          git push origin HEAD:feat/topology-atlas-evidence-input
+          pr="$(gh pr list --head feat/topology-atlas-evidence-input --state open --json number --jq '.[0].number // empty')"
+          if [[ -z "$pr" ]]; then
+            gh pr create \
+              --base feat/structure-edit-episodes \
+              --head feat/topology-atlas-evidence-input \
+              --title "feat(intuition): register exact topology atlas evidence inputs" \
+              --draft \
+              --body "Exact stable identities, structural traits, cluster interfaces, and affinity witnesses are now registered against the release-bound Atlas. Independent Core, hostile-input, and lifecycle gates pass. No auto-merge."
+          else
+            gh pr edit "$pr" --add-label ""
+          fi
