@@ -28,6 +28,25 @@ jobs:
           dotnet run
           --project tests/Trureturing.Intuition.ResearchInputTests
           -c Release
+          --no-build
+      - name: Human structural observation tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.HumanObservationTests
+          -c Release
+          --no-build
+      - name: Structure edit episode tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.StructureEpisodeTests
+          -c Release
+          --no-build
+      - name: Topology Atlas evidence input tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.EvidenceInputTests
+          -c Release
+          --no-build
       - name: Architecture boundary tests
         run: dotnet run --project tests/Trureturing.Intuition.ArchitectureTests -c Release --no-build
       - name: Build exact FKST substrate
