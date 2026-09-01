@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-candidate-draft-set.v1",
+  "title": "Agent-drafted semantic structure edit candidates",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "episode_ref",
+    "episode_receipt_ref",
+    "topology_atlas_evidence_input_receipt_ref",
+    "generated_by",
+    "model_snapshot",
+    "candidates",
+    "generated_at"
+  ],
+  "properties": {
+    "schema": {
+      "const": "structure-edit-candidate-draft-set.v1"
+    },
+    "episode_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "episode_receipt_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "topology_atlas_evidence_input_receipt_ref": {
+      "$ref": "#/$defs/digest"
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "model_snapshot": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/candidateDraft"
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "interfaceId": {
+      "type": "string",
+      "pattern": "^interface:sha256:[0-9a-f]{64}$"
+    },
+    "nodeIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "clusterIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/clusterId"
+      }
+    },
+    "interfaceIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/interfaceId"
+      }
+    },
+    "textArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "affinityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "neighbor_node_id",
+        "rank"
+      ],
+      "properties": {
+        "source_node_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "neighbor_node_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
+    },
+    "candidateDraft": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edit_kind",
+        "anchor_node_ids",
+        "anchor_cluster_ids",
+        "interface_evidence_ids",
+        "affinity_evidence",
+        "candidate_statement",
+        "representation_map",
+        "assumption_map",
+        "preserved_invariants",
+        "falsifier",
+        "verification_route"
+      ],
+      "properties": {
+        "edit_kind": {
+          "$ref": "#/$defs/editKind"
+        },
+        "anchor_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "anchor_cluster_ids": {
+          "$ref": "#/$defs/clusterIdArray"
+        },
+        "interface_evidence_ids": {
+          "$ref": "#/$defs/interfaceIdArray"
+        },
+        "affinity_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/affinityEvidence"
+          }
+        },
+        "candidate_statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "representation_map": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "assumption_map": {
+          "$ref": "#/$defs/textArray"
+        },
+        "preserved_invariants": {
+          "$ref": "#/$defs/textArray"
+        },
+        "falsifier": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "verification_route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "editKind": {
+      "enum": [
+        "acquire-evidence",
+        "add-abstraction",
+        "add-bridge",
+        "add-counterexample",
+        "add-definition-package",
+        "add-premise",
+        "add-subgoal",
+        "change-representation",
+        "register-open-question",
+        "reroot"
+      ]
+    }
+  }
+}
