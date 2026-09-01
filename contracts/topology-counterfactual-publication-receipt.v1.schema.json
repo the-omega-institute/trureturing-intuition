@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topology-counterfactual-publication-receipt.v1",
+  "title": "Immutable receipt for one exact Topology counterfactual publication",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "publication_ref",
+    "publication_id",
+    "result_ref",
+    "patch_ref",
+    "patch_id",
+    "candidate_ref",
+    "candidate_id",
+    "truth_release_digest",
+    "topology_atlas_digest",
+    "topology_atlas_evidence_digest",
+    "topology_counterfactual_profile_digest",
+    "topology_producer_commit",
+    "projection_profile",
+    "authority"
+  ],
+  "properties": {
+    "schema": { "const": "topology-counterfactual-publication-receipt.v1" },
+    "publication_ref": { "$ref": "#/$defs/digest" },
+    "publication_id": { "$ref": "#/$defs/digest" },
+    "result_ref": { "$ref": "#/$defs/digest" },
+    "patch_ref": { "$ref": "#/$defs/digest" },
+    "patch_id": { "$ref": "#/$defs/digest" },
+    "candidate_ref": { "$ref": "#/$defs/digest" },
+    "candidate_id": { "$ref": "#/$defs/digest" },
+    "truth_release_digest": { "$ref": "#/$defs/digest" },
+    "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+    "topology_atlas_evidence_digest": { "$ref": "#/$defs/digest" },
+    "topology_counterfactual_profile_digest": { "$ref": "#/$defs/digest" },
+    "topology_producer_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "projection_profile": { "const": "topology-counterfactual-projection-v1" },
+    "authority": { "const": "advisory" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}
