@@ -1,0 +1,61 @@
+name: topology-counterfactual-valuation-gate
+
+on:
+  pull_request:
+    paths:
+      - "src/Trureturing.Intuition.Core/TopologyCounterfactual.cs"
+      - "src/Trureturing.Intuition.Core/StructureCounterfactual*.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.StructureCounterfactual.cs"
+      - "tools/Trureturing.Intuition.StructureCounterfactual/**"
+      - "tests/Trureturing.Intuition.StructureCounterfactualTests/**"
+      - "contracts/structure-counterfactual-valuation.v1.schema.json"
+      - ".fkst/local-packages/trureturing-intuition/raisers/topology_counterfactuals.lua"
+      - ".fkst/local-packages/trureturing-intuition/departments/topology-counterfactual-valuation/**"
+      - ".github/workflows/topology-counterfactual-valuation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  valuation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build Core and valuation tool with warnings as errors
+        run: |
+          dotnet build src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj -c Release --warnaserror
+          dotnet build tools/Trureturing.Intuition.StructureCounterfactual/Trureturing.Intuition.StructureCounterfactual.csproj -c Release --warnaserror
+      - name: Run vector valuation and hostile-input tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.StructureCounterfactualTests
+          -c Release
+      - name: Check compatibility with the current Topology counterfactual contract
+        run: |
+          set -euo pipefail
+          sha="$(curl -fsSL https://api.github.com/repos/the-omega-institute/trureturing-fkst-packages/pulls/23 | jq -r '.head.sha')"
+          test -n "$sha"
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/the-omega-institute/trureturing-fkst-packages.git \
+            "$RUNNER_TEMP/topology"
+          git -C "$RUNNER_TEMP/topology" fetch --depth=1 origin "$sha"
+          git -C "$RUNNER_TEMP/topology" checkout --detach FETCH_HEAD
+          schema="$(find "$RUNNER_TEMP/topology" -name 'topology-counterfactual.v1.schema.json' -print -quit)"
+          test -f "$schema"
+          python - "$schema" <<'PY'
+          import json
+          import sys
+          schema = json.load(open(sys.argv[1], encoding="utf-8"))
+          required = set(schema.get("required", []))
+          assert "schema_version" in required
+          assert "truth_release_digest" in required
+          assert "topology_atlas_digest" in required
+          assert {"algorithm_profile_digest", "counterfactual_profile_digest"} & required
+          assert "producer_commit" in required
+          assert "accepted" in required
+          assert {"cycle_risk", "would_create_cycle"} & required
+          assert "analysis" in required
+          PY
