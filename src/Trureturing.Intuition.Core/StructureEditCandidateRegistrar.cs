@@ -1,32 +1,9 @@
+using System.Globalization;
+
 namespace Trureturing.Intuition.Core;
 
 public static class StructureEditCandidateRegistrar
 {
-    private static readonly IReadOnlyDictionary<string, string> CandidateKindByEditKind =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [StructureEditKinds.AcquireEvidence] =
-                StructureCandidateKinds.EvidenceAcquisition,
-            [StructureEditKinds.AddAbstraction] =
-                StructureCandidateKinds.Abstraction,
-            [StructureEditKinds.AddBridge] =
-                StructureCandidateKinds.Bridge,
-            [StructureEditKinds.AddCounterexample] =
-                StructureCandidateKinds.Counterexample,
-            [StructureEditKinds.AddDefinitionPackage] =
-                StructureCandidateKinds.DefinitionPackage,
-            [StructureEditKinds.AddPremise] =
-                StructureCandidateKinds.PremiseSet,
-            [StructureEditKinds.AddSubgoal] =
-                StructureCandidateKinds.Subgoal,
-            [StructureEditKinds.ChangeRepresentation] =
-                StructureCandidateKinds.RepresentationChange,
-            [StructureEditKinds.RegisterOpenQuestion] =
-                StructureCandidateKinds.OpenQuestion,
-            [StructureEditKinds.Reroot] =
-                StructureCandidateKinds.Reroot
-        };
-
     public static StructureEditCandidateSetRegistration Register(
         ArtifactStore store,
         StructureEditCandidateDraftSet draftSet)
@@ -116,12 +93,17 @@ public static class StructureEditCandidateRegistrar
         ArtifactStore store,
         string episodeRef,
         string episodeReceiptRef,
-        string evidenceReceiptRef) =>
-        StructureEditCandidateContextBuilder.Build(
-            store,
-            episodeRef,
-            episodeReceiptRef,
-            evidenceReceiptRef);
+        string evidenceReceiptRef)
+    {
+        StructureEditCandidateContext context =
+            StructureEditCandidateContextBuilder.Build(
+                store,
+                episodeRef,
+                episodeReceiptRef,
+                evidenceReceiptRef);
+        ContractValidator.Validate(context);
+        return context;
+    }
 
     private static StructureEditCandidate BuildCandidate(
         StructureEditCandidateResearchState state,
@@ -141,13 +123,8 @@ public static class StructureEditCandidateRegistrar
             throw new InvalidDataException(
                 $"{path}.edit_kind is outside the episode edit algebra.");
         }
-        if (!CandidateKindByEditKind.TryGetValue(
-                editKind,
-                out string? candidateKind))
-        {
-            throw new InvalidDataException(
-                $"{path}.edit_kind has no candidate-kind lowering.");
-        }
+        string candidateKind = StructureEditCandidateMappings.CandidateKind(
+            editKind);
 
         string[] anchorNodeIds = NormalizeStrings(
             draft.AnchorNodeIds,
@@ -181,16 +158,23 @@ public static class StructureEditCandidateRegistrar
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
+        if (stableNodeIds.Length != anchorNodeIds.Length)
+        {
+            throw new InvalidDataException(
+                $"{path} contains node anchors with colliding stable identities.");
+        }
+        var anchorNodeSet = anchorNodeIds.ToHashSet(StringComparer.Ordinal);
+        var anchorClusterSet = anchorClusterIds.ToHashSet(StringComparer.Ordinal);
         string[] interfaceIds = ValidateInterfaces(
             state,
             draft.InterfaceEvidenceIds,
-            anchorNodeIds,
-            anchorClusterIds,
+            anchorNodeSet,
+            anchorClusterSet,
             path);
         StructureAffinityEvidenceRef[] affinities = ValidateAffinities(
             state,
             draft.AffinityEvidence,
-            anchorNodeIds,
+            anchorNodeSet,
             path);
 
         var content = new StructureEditCandidateContent(
@@ -331,18 +315,16 @@ public static class StructureEditCandidateRegistrar
     private static string NormalizeTimestamp(string value, string name)
     {
         string normalized = NormalizeText(value, name, 128);
-        if (!DateTimeOffset.TryParseExact(
+        if (!DateTimeOffset.TryParse(
                 normalized,
-                "O",
-                System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.AssumeUniversal |
-                    System.Globalization.DateTimeStyles.AdjustToUniversal,
-                out _))
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out DateTimeOffset parsed))
         {
             throw new InvalidDataException(
-                $"{name} must be a canonical round-trip timestamp.");
+                $"{name} must be an RFC 3339 timestamp.");
         }
-        return normalized;
+        return parsed.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
     }
 
     private static string NormalizeText(
