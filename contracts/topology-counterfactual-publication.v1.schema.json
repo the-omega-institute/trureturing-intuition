@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topology-counterfactual-publication.v1",
+  "title": "Exact Topology counterfactual publication with normalized structural projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "publication_id", "publication_content"],
+  "properties": {
+    "schema": { "const": "topology-counterfactual-publication.v1" },
+    "publication_id": { "$ref": "#/$defs/digest" },
+    "publication_content": { "$ref": "#/$defs/content" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted",
+        "cycle_risk",
+        "analysis_available",
+        "affected_stable_node_ids",
+        "reachable_pair_gain",
+        "reachable_pair_loss",
+        "shortest_path_improvement_count",
+        "total_path_compression",
+        "new_cut_bridge_count",
+        "removed_cut_bridge_count",
+        "touched_cluster_ids",
+        "new_interface_hypothesis_count",
+        "removed_interface_hypothesis_count"
+      ],
+      "properties": {
+        "accepted": { "type": "boolean" },
+        "cycle_risk": { "type": "boolean" },
+        "analysis_available": { "type": "boolean" },
+        "affected_stable_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reachable_pair_gain": { "type": "integer", "minimum": 0 },
+        "reachable_pair_loss": { "type": "integer", "minimum": 0 },
+        "shortest_path_improvement_count": { "type": "integer", "minimum": 0 },
+        "total_path_compression": { "type": "integer", "minimum": 0 },
+        "new_cut_bridge_count": { "type": "integer", "minimum": 0 },
+        "removed_cut_bridge_count": { "type": "integer", "minimum": 0 },
+        "touched_cluster_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/clusterId" }
+        },
+        "new_interface_hypothesis_count": { "type": "integer", "minimum": 0 },
+        "removed_interface_hypothesis_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patch_ref",
+        "patch_id",
+        "candidate_ref",
+        "candidate_id",
+        "truth_release_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "topology_counterfactual_result_digest",
+        "topology_counterfactual_profile_digest",
+        "topology_producer_commit",
+        "projection",
+        "projection_profile",
+        "authority"
+      ],
+      "properties": {
+        "patch_ref": { "$ref": "#/$defs/digest" },
+        "patch_id": { "$ref": "#/$defs/digest" },
+        "candidate_ref": { "$ref": "#/$defs/digest" },
+        "candidate_id": { "$ref": "#/$defs/digest" },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_evidence_digest": { "$ref": "#/$defs/digest" },
+        "topology_counterfactual_result_digest": { "$ref": "#/$defs/digest" },
+        "topology_counterfactual_profile_digest": { "$ref": "#/$defs/digest" },
+        "topology_producer_commit": { "$ref": "#/$defs/gitCommit" },
+        "projection": { "$ref": "#/$defs/projection" },
+        "projection_profile": { "const": "topology-counterfactual-projection-v1" },
+        "authority": { "const": "advisory" }
+      }
+    }
+  }
+}
