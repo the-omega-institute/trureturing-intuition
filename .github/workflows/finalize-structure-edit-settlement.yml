@@ -1,0 +1,137 @@
+name: finalize-structure-edit-settlement
+
+on:
+  push:
+    branches:
+      - feat/structure-edit-settlement
+    paths:
+      - .github/workflows/finalize-structure-edit-settlement.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/structure-edit-settlement
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Repair stacked seams, vendor delta contract, and validate the full chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin feat/structure-edit-settlement
+          python - <<'PY'
+          from pathlib import Path
+
+          evidence = Path("src/Trureturing.Intuition.Core/TopologyAtlasEvidence.cs")
+          if evidence.exists():
+              text = evidence.read_text(encoding="utf-8")
+              text = text.replace(
+                  "witnessCount is >= 1 and <= 64",
+                  "witnessCount >= BigInteger.One && witnessCount <= new BigInteger(64)",
+              )
+              evidence.write_text(text, encoding="utf-8")
+
+          candidate = Path("src/Trureturing.Intuition.Core/ContractValidator.StructureEditCandidate.cs")
+          if candidate.exists():
+              text = candidate.read_text(encoding="utf-8")
+              old = '''        if (candidateKind is StructureEditKinds.AddAbstraction
+            or StructureEditKinds.AddCounterexample
+            or StructureEditKinds.AddDefinitionPackage
+            or StructureEditKinds.AddPremise
+            or StructureEditKinds.AddSubgoal
+            or StructureEditKinds.ChangeRepresentation
+            or StructureEditKinds.RegisterOpenQuestion
+            && addedNodes == 0)'''
+              new = '''        if ((candidateKind is StructureEditKinds.AddAbstraction
+            or StructureEditKinds.AddCounterexample
+            or StructureEditKinds.AddDefinitionPackage
+            or StructureEditKinds.AddPremise
+            or StructureEditKinds.AddSubgoal
+            or StructureEditKinds.ChangeRepresentation
+            or StructureEditKinds.RegisterOpenQuestion)
+            && addedNodes == 0)'''
+              text = text.replace(old, new)
+              candidate.write_text(text, encoding="utf-8")
+
+          counterfactual = Path("src/Trureturing.Intuition.Core/TopologyCounterfactual.cs")
+          if counterfactual.exists():
+              text = counterfactual.read_text(encoding="utf-8")
+              old = '''            BigInteger direct = CountValue(value, "path_compression");
+            if (direct > 0 || value.ValueKind == JsonValueKind.Number)
+            {
+                return direct;
+            }
+            if (value.ValueKind == JsonValueKind.Object)'''
+              new = '''            if (value.ValueKind is JsonValueKind.Number or JsonValueKind.Array)
+            {
+                return CountValue(value, "path_compression");
+            }
+            if (value.ValueKind == JsonValueKind.Object)'''
+              text = text.replace(old, new)
+              counterfactual.write_text(text, encoding="utf-8")
+
+          settlement_files = [
+              Path("src/Trureturing.Intuition.Core/StructureEditSettlement.cs"),
+              Path("src/Trureturing.Intuition.Core/ContractValidator.StructureEditSettlement.cs"),
+              Path("src/Trureturing.Intuition.Core/StructureEditSettlementRegistrar.cs"),
+              Path("tests/Trureturing.Intuition.StructureEditSettlementTests/Program.cs"),
+              Path("contracts/structure-edit-settlement.v1.schema.json"),
+          ]
+          replacements = {
+              "AlreadyPresentCount": "AlreadySatisfiedCount",
+              "already-present": "already-satisfied",
+              "already_present_count": "already_satisfied_count",
+          }
+          for path in settlement_files:
+              text = path.read_text(encoding="utf-8")
+              for old, new in replacements.items():
+                  text = text.replace(old, new)
+              path.write_text(text, encoding="utf-8")
+          PY
+          sha="$(curl -fsSL https://api.github.com/repos/the-omega-institute/trureturing-fkst-packages/pulls/22 | jq -r '.head.sha')"
+          test -n "$sha"
+          mkdir -p contracts/upstream
+          curl -fsSL \
+            "https://raw.githubusercontent.com/the-omega-institute/trureturing-fkst-packages/${sha}/packages/trureturing-topology/contracts/topology-atlas-delta.v1.schema.json" \
+            -o contracts/upstream/topology-atlas-delta.v1.schema.json
+          printf '%s  %s\n' \
+            "$(sha256sum contracts/upstream/topology-atlas-delta.v1.schema.json | cut -d ' ' -f 1)" \
+            "topology-atlas-delta.v1.schema.json" \
+            > contracts/upstream/topology-atlas-delta.v1.schema.sha256
+          printf '%s\n' "$sha" > contracts/upstream/topology-atlas-delta.producer-commit
+          dotnet build src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj -c Release --warnaserror
+          dotnet build tools/Trureturing.Intuition.StructureEditSettlement/Trureturing.Intuition.StructureEditSettlement.csproj -c Release --warnaserror
+          dotnet run --project tests/Trureturing.Intuition.TopologyAtlasEvidenceInputTests -c Release
+          dotnet run --project tests/Trureturing.Intuition.StructureEditCandidateTests -c Release
+          dotnet run --project tests/Trureturing.Intuition.StructureCounterfactualTests -c Release
+          dotnet run --project tests/Trureturing.Intuition.StructureEditSettlementTests -c Release
+          rm -f \
+            .github/workflows/finalize-topology-atlas-evidence.yml \
+            .github/workflows/repair-topology-atlas-evidence-finalize.yml \
+            .github/workflows/finalize-structure-edit-candidate.yml \
+            .github/workflows/finalize-topology-counterfactual-valuation.yml \
+            .github/workflows/finalize-structure-edit-settlement.yml
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(intuition): finalize independent structure settlement"
+          fi
+          for attempt in 1 2 3; do
+            if git push origin HEAD:feat/structure-edit-settlement; then break; fi
+            git pull --rebase origin feat/structure-edit-settlement
+            if [[ "$attempt" == 3 ]]; then exit 1; fi
+          done
+          pr="$(gh pr list --head feat/structure-edit-settlement --state open --json number --jq '.[0].number // empty')"
+          if [[ -n "$pr" ]]; then
+            gh pr comment "$pr" --body "Current-head validation passed across Atlas evidence, typed candidates, vector counterfactual valuation, Formalize evidence, and later-release Atlas delta settlement. The exact Topology #22 delta schema and producer commit are vendored."
+          fi

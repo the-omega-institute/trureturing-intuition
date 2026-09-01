@@ -1,0 +1,67 @@
+name: structure-edit-settlement-gate
+
+on:
+  pull_request:
+    paths:
+      - "src/Trureturing.Intuition.Core/TopologyAtlasDelta.cs"
+      - "src/Trureturing.Intuition.Core/StructureFormalizationResult.cs"
+      - "src/Trureturing.Intuition.Core/StructureEditSettlement*.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.StructureFormalizationResult.cs"
+      - "src/Trureturing.Intuition.Core/ContractValidator.StructureEditSettlement.cs"
+      - "tools/Trureturing.Intuition.StructureEditSettlement/**"
+      - "tests/Trureturing.Intuition.StructureEditSettlementTests/**"
+      - "contracts/structure-formalization-result.v1.schema.json"
+      - "contracts/structure-edit-settlement.v1.schema.json"
+      - ".fkst/local-packages/trureturing-intuition/raisers/structure_edit_settlements.lua"
+      - ".fkst/local-packages/trureturing-intuition/departments/structure-edit-settlement/**"
+      - ".github/workflows/structure-edit-settlement.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  settlement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build Core and settlement tool with warnings as errors
+        run: |
+          dotnet build src/Trureturing.Intuition.Core/Trureturing.Intuition.Core.csproj -c Release --warnaserror
+          dotnet build tools/Trureturing.Intuition.StructureEditSettlement/Trureturing.Intuition.StructureEditSettlement.csproj -c Release --warnaserror
+      - name: Run Formalize and release-delta settlement tests
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.StructureEditSettlementTests
+          -c Release
+      - name: Check compatibility with current Topology Atlas delta contract
+        run: |
+          set -euo pipefail
+          sha="$(curl -fsSL https://api.github.com/repos/the-omega-institute/trureturing-fkst-packages/pulls/22 | jq -r '.head.sha')"
+          test -n "$sha"
+          schema_url="https://raw.githubusercontent.com/the-omega-institute/trureturing-fkst-packages/${sha}/packages/trureturing-topology/contracts/topology-atlas-delta.v1.schema.json"
+          curl -fsSL "$schema_url" -o "$RUNNER_TEMP/topology-atlas-delta.v1.schema.json"
+          python - "$RUNNER_TEMP/topology-atlas-delta.v1.schema.json" <<'PY'
+          import json
+          import sys
+          schema = json.load(open(sys.argv[1], encoding="utf-8"))
+          required = set(schema.get("required", []))
+          assert required == {
+              "schema_version",
+              "from_truth_release_digest",
+              "to_truth_release_digest",
+              "from_topology_atlas_digest",
+              "to_topology_atlas_digest",
+              "from_evidence_digest",
+              "to_evidence_digest",
+              "algorithm_profile_digest",
+              "producer_commit",
+              "node_transitions",
+              "edge_transitions",
+              "cluster_lineage",
+              "frontier_delta",
+              "summary",
+          }
+          PY

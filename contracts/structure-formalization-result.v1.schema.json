@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-formalization-result.v1",
+  "title": "Independent Formalize execution result for one structure edit candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "result_id", "result_content"],
+  "properties": {
+    "schema": { "const": "structure-formalization-result.v1" },
+    "result_id": { "$ref": "#/$defs/digest" },
+    "result_content": { "$ref": "#/$defs/content" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "nullableDigest": {
+      "oneOf": [
+        { "$ref": "#/$defs/digest" },
+        { "type": "null" }
+      ]
+    },
+    "digestArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/digest" }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_ref",
+        "candidate_id",
+        "formalization_request_ref",
+        "truth_release_digest",
+        "topology_atlas_digest",
+        "outcome",
+        "verifier",
+        "verification_receipt_ref",
+        "formal_artifact_ref",
+        "statement_digest",
+        "diagnostic_artifact_refs",
+        "authority",
+        "completed_at"
+      ],
+      "properties": {
+        "candidate_ref": { "$ref": "#/$defs/digest" },
+        "candidate_id": { "$ref": "#/$defs/digest" },
+        "formalization_request_ref": { "$ref": "#/$defs/digest" },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "outcome": {
+          "enum": [
+            "verified",
+            "refuted",
+            "inconclusive",
+            "infrastructure-failure"
+          ]
+        },
+        "verifier": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "verification_receipt_ref": { "$ref": "#/$defs/nullableDigest" },
+        "formal_artifact_ref": { "$ref": "#/$defs/nullableDigest" },
+        "statement_digest": { "$ref": "#/$defs/nullableDigest" },
+        "diagnostic_artifact_refs": { "$ref": "#/$defs/digestArray" },
+        "authority": { "const": "formalize-execution-evidence" },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

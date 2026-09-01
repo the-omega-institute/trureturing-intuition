@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-edit-settlement.v1",
+  "title": "Independent settlement of one structure edit against Formalize and a later Atlas delta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "settlement_id", "settlement_content"],
+  "properties": {
+    "schema": { "const": "structure-edit-settlement.v1" },
+    "settlement_id": { "$ref": "#/$defs/digest" },
+    "settlement_content": { "$ref": "#/$defs/content" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nullableText": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 512 },
+        { "type": "null" }
+      ]
+    },
+    "operationSettlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_ordinal",
+        "operation",
+        "stable_subject_id",
+        "stable_object_id",
+        "expected_delta_relation",
+        "observed_delta_relation",
+        "outcome",
+        "from_node_id",
+        "to_node_id",
+        "from_dependent_id",
+        "to_dependent_id"
+      ],
+      "properties": {
+        "operation_ordinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "operation": {
+          "enum": ["add-node", "add-edge", "remove-edge"]
+        },
+        "stable_subject_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stable_object_id": { "$ref": "#/$defs/nullableText" },
+        "expected_delta_relation": {
+          "enum": ["added", "removed"]
+        },
+        "observed_delta_relation": {
+          "oneOf": [
+            { "enum": ["added", "retained", "retired", "removed"] },
+            { "type": "null" }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "realized",
+            "not-realized",
+            "already-present",
+            "contradicted"
+          ]
+        },
+        "from_node_id": { "$ref": "#/$defs/nullableText" },
+        "to_node_id": { "$ref": "#/$defs/nullableText" },
+        "from_dependent_id": { "$ref": "#/$defs/nullableText" },
+        "to_dependent_id": { "$ref": "#/$defs/nullableText" }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_count",
+        "realized_count",
+        "not_realized_count",
+        "already_present_count",
+        "contradicted_count"
+      ],
+      "properties": {
+        "operation_count": { "$ref": "#/$defs/nonNegativeInteger" },
+        "realized_count": { "$ref": "#/$defs/nonNegativeInteger" },
+        "not_realized_count": { "$ref": "#/$defs/nonNegativeInteger" },
+        "already_present_count": { "$ref": "#/$defs/nonNegativeInteger" },
+        "contradicted_count": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "benefit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reachability_gain",
+        "path_compression",
+        "removed_cut_bridges",
+        "new_interfaces",
+        "shortest_path_changes"
+      ],
+      "properties": {
+        "reachability_gain": { "$ref": "#/$defs/nonNegativeInteger" },
+        "path_compression": { "$ref": "#/$defs/nonNegativeInteger" },
+        "removed_cut_bridges": { "$ref": "#/$defs/nonNegativeInteger" },
+        "new_interfaces": { "$ref": "#/$defs/nonNegativeInteger" },
+        "shortest_path_changes": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reachability_loss",
+        "new_cut_bridges",
+        "removed_interfaces",
+        "affected_stable_nodes",
+        "touched_clusters",
+        "verification_burden",
+        "cycle_risk"
+      ],
+      "properties": {
+        "reachability_loss": { "$ref": "#/$defs/nonNegativeInteger" },
+        "new_cut_bridges": { "$ref": "#/$defs/nonNegativeInteger" },
+        "removed_interfaces": { "$ref": "#/$defs/nonNegativeInteger" },
+        "affected_stable_nodes": { "$ref": "#/$defs/nonNegativeInteger" },
+        "touched_clusters": { "$ref": "#/$defs/nonNegativeInteger" },
+        "verification_burden": { "$ref": "#/$defs/nonNegativeInteger" },
+        "cycle_risk": { "type": "boolean" }
+      }
+    },
+    "realized": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes_added",
+        "nodes_retired",
+        "edges_added",
+        "edges_removed",
+        "cluster_splits",
+        "cluster_merges",
+        "cluster_reorganizations",
+        "frontier_entered",
+        "frontier_left"
+      ],
+      "properties": {
+        "nodes_added": { "$ref": "#/$defs/nonNegativeInteger" },
+        "nodes_retired": { "$ref": "#/$defs/nonNegativeInteger" },
+        "edges_added": { "$ref": "#/$defs/nonNegativeInteger" },
+        "edges_removed": { "$ref": "#/$defs/nonNegativeInteger" },
+        "cluster_splits": { "$ref": "#/$defs/nonNegativeInteger" },
+        "cluster_merges": { "$ref": "#/$defs/nonNegativeInteger" },
+        "cluster_reorganizations": { "$ref": "#/$defs/nonNegativeInteger" },
+        "frontier_entered": { "$ref": "#/$defs/nonNegativeInteger" },
+        "frontier_left": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_ref",
+        "candidate_id",
+        "episode_ref",
+        "episode_id",
+        "counterfactual_valuation_ref",
+        "counterfactual_valuation_id",
+        "counterfactual_ref",
+        "formalization_result_ref",
+        "formalization_result_id",
+        "formalization_request_ref",
+        "atlas_delta_ref",
+        "atlas_delta_digest",
+        "from_truth_release_digest",
+        "to_truth_release_digest",
+        "from_topology_atlas_digest",
+        "to_topology_atlas_digest",
+        "from_evidence_digest",
+        "to_evidence_digest",
+        "formalization_outcome",
+        "counterfactual_classification",
+        "operation_settlements",
+        "counts",
+        "predicted_benefit_vector",
+        "predicted_risk_vector",
+        "realized_delta_summary",
+        "settlement_status",
+        "calibration_class",
+        "authority"
+      ],
+      "properties": {
+        "candidate_ref": { "$ref": "#/$defs/digest" },
+        "candidate_id": { "$ref": "#/$defs/digest" },
+        "episode_ref": { "$ref": "#/$defs/digest" },
+        "episode_id": { "$ref": "#/$defs/digest" },
+        "counterfactual_valuation_ref": { "$ref": "#/$defs/digest" },
+        "counterfactual_valuation_id": { "$ref": "#/$defs/digest" },
+        "counterfactual_ref": { "$ref": "#/$defs/digest" },
+        "formalization_result_ref": { "$ref": "#/$defs/digest" },
+        "formalization_result_id": { "$ref": "#/$defs/digest" },
+        "formalization_request_ref": { "$ref": "#/$defs/digest" },
+        "atlas_delta_ref": { "$ref": "#/$defs/digest" },
+        "atlas_delta_digest": { "$ref": "#/$defs/digest" },
+        "from_truth_release_digest": { "$ref": "#/$defs/digest" },
+        "to_truth_release_digest": { "$ref": "#/$defs/digest" },
+        "from_topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "to_topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "from_evidence_digest": { "$ref": "#/$defs/digest" },
+        "to_evidence_digest": { "$ref": "#/$defs/digest" },
+        "formalization_outcome": {
+          "enum": [
+            "verified",
+            "refuted",
+            "inconclusive",
+            "infrastructure-failure"
+          ]
+        },
+        "counterfactual_classification": {
+          "enum": [
+            "rejected-cycle",
+            "rejected-topology",
+            "structural-upside",
+            "mixed-structural-risk",
+            "structural-risk",
+            "no-measured-gain"
+          ]
+        },
+        "operation_settlements": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/operationSettlement" }
+        },
+        "counts": { "$ref": "#/$defs/counts" },
+        "predicted_benefit_vector": { "$ref": "#/$defs/benefit" },
+        "predicted_risk_vector": { "$ref": "#/$defs/risk" },
+        "realized_delta_summary": { "$ref": "#/$defs/realized" },
+        "settlement_status": {
+          "enum": [
+            "verified-and-realized",
+            "verified-not-yet-realized",
+            "refuted",
+            "unresolved",
+            "infrastructure-failure",
+            "counterfactual-rejected"
+          ]
+        },
+        "calibration_class": {
+          "enum": [
+            "confirmed-structural-transfer",
+            "formal-proof-awaiting-release",
+            "candidate-redundant",
+            "counterfactual-overpredicted",
+            "formal-refutation",
+            "unresolved-evidence",
+            "infrastructure-only",
+            "rejected-before-formalization"
+          ]
+        },
+        "authority": { "const": "independent-structure-settlement" }
+      }
+    }
+  }
+}
