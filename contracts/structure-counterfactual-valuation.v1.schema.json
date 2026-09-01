@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "structure-counterfactual-valuation.v1",
+  "title": "Non-scalar structural worth vector for one Topology counterfactual",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "valuation_id", "valuation_content"],
+  "properties": {
+    "schema": { "const": "structure-counterfactual-valuation.v1" },
+    "valuation_id": { "$ref": "#/$defs/digest" },
+    "valuation_content": { "$ref": "#/$defs/content" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted",
+        "cycle_risk",
+        "analysis_available",
+        "affected_stable_node_ids",
+        "reachable_pair_gain",
+        "reachable_pair_loss",
+        "shortest_path_improvement_count",
+        "total_path_compression",
+        "new_cut_bridge_count",
+        "removed_cut_bridge_count",
+        "touched_cluster_ids",
+        "new_interface_hypothesis_count",
+        "removed_interface_hypothesis_count"
+      ],
+      "properties": {
+        "accepted": { "type": "boolean" },
+        "cycle_risk": { "type": "boolean" },
+        "analysis_available": { "type": "boolean" },
+        "affected_stable_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reachable_pair_gain": { "type": "integer", "minimum": 0 },
+        "reachable_pair_loss": { "type": "integer", "minimum": 0 },
+        "shortest_path_improvement_count": { "type": "integer", "minimum": 0 },
+        "total_path_compression": { "type": "integer", "minimum": 0 },
+        "new_cut_bridge_count": { "type": "integer", "minimum": 0 },
+        "removed_cut_bridge_count": { "type": "integer", "minimum": 0 },
+        "touched_cluster_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/clusterId" }
+        },
+        "new_interface_hypothesis_count": { "type": "integer", "minimum": 0 },
+        "removed_interface_hypothesis_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "worthVector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reachability_gain",
+        "reachability_loss",
+        "path_compression_gain",
+        "interface_hypothesis_gain",
+        "interface_hypothesis_loss",
+        "cut_bridge_reduction",
+        "cut_bridge_creation",
+        "affected_scope",
+        "patch_operation_cost",
+        "cycle_risk_penalty",
+        "formal_verification_open"
+      ],
+      "properties": {
+        "reachability_gain": { "type": "integer", "minimum": 0 },
+        "reachability_loss": { "type": "integer", "minimum": 0 },
+        "path_compression_gain": { "type": "integer", "minimum": 0 },
+        "interface_hypothesis_gain": { "type": "integer", "minimum": 0 },
+        "interface_hypothesis_loss": { "type": "integer", "minimum": 0 },
+        "cut_bridge_reduction": { "type": "integer", "minimum": 0 },
+        "cut_bridge_creation": { "type": "integer", "minimum": 0 },
+        "affected_scope": { "type": "integer", "minimum": 0 },
+        "patch_operation_cost": { "type": "integer", "minimum": 0 },
+        "cycle_risk_penalty": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "formal_verification_open": { "type": "boolean" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_ref",
+        "candidate_id",
+        "patch_ref",
+        "patch_id",
+        "counterfactual_publication_ref",
+        "counterfactual_publication_id",
+        "counterfactual_result_ref",
+        "truth_release_digest",
+        "topology_atlas_digest",
+        "topology_atlas_evidence_digest",
+        "projection",
+        "worth_vector",
+        "eligible_for_formal_research",
+        "blocking_reason",
+        "valuation_profile",
+        "authority"
+      ],
+      "properties": {
+        "candidate_ref": { "$ref": "#/$defs/digest" },
+        "candidate_id": { "$ref": "#/$defs/digest" },
+        "patch_ref": { "$ref": "#/$defs/digest" },
+        "patch_id": { "$ref": "#/$defs/digest" },
+        "counterfactual_publication_ref": { "$ref": "#/$defs/digest" },
+        "counterfactual_publication_id": { "$ref": "#/$defs/digest" },
+        "counterfactual_result_ref": { "$ref": "#/$defs/digest" },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_digest": { "$ref": "#/$defs/digest" },
+        "topology_atlas_evidence_digest": { "$ref": "#/$defs/digest" },
+        "projection": { "$ref": "#/$defs/projection" },
+        "worth_vector": { "$ref": "#/$defs/worthVector" },
+        "eligible_for_formal_research": { "type": "boolean" },
+        "blocking_reason": {
+          "enum": ["none", "cycle-risk", "topology-rejected", "analysis-unavailable"]
+        },
+        "valuation_profile": { "const": "structure-counterfactual-worth-vector-v1" },
+        "authority": { "const": "advisory" }
+      }
+    }
+  }
+}
