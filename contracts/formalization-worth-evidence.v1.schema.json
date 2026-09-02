@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formalization-worth-evidence.v1",
+  "title": "CMA evidence consumed by the deterministic formalization gate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_id",
+    "request",
+    "analysis_ref",
+    "route_authorization_ref",
+    "duplicate_search_complete",
+    "duplicate_matches",
+    "verification_plan",
+    "falsifier",
+    "topology_counterfactual_ref",
+    "novelty_status",
+    "structural_leverage_status",
+    "novelty_basis_points",
+    "structural_leverage_basis_points",
+    "reuse_value_basis_points",
+    "frontier_closure_basis_points",
+    "verification_readiness_basis_points",
+    "uncertainty_basis_points",
+    "estimated_verifier_calls",
+    "estimated_generated_lemmas",
+    "estimated_wall_seconds",
+    "estimated_human_review_minutes",
+    "scope_status",
+    "privacy_status",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema": { "const": "formalization-worth-evidence.v1" },
+    "evidence_id": { "$ref": "#/$defs/digest" },
+    "request": { "$ref": "#/$defs/request" },
+    "analysis_ref": { "$ref": "#/$defs/digest" },
+    "route_authorization_ref": { "$ref": "#/$defs/digest" },
+    "duplicate_search_complete": { "type": "boolean" },
+    "duplicate_matches": { "$ref": "#/$defs/textArray" },
+    "verification_plan": { "$ref": "#/$defs/nullableText" },
+    "falsifier": { "$ref": "#/$defs/nullableText" },
+    "topology_counterfactual_ref": { "$ref": "#/$defs/nullableDigest" },
+    "novelty_status": { "enum": ["demonstrated", "plausible", "open", "duplicate"] },
+    "structural_leverage_status": { "enum": ["demonstrated", "plausible", "open"] },
+    "novelty_basis_points": { "$ref": "#/$defs/nullableBasisPoints" },
+    "structural_leverage_basis_points": { "$ref": "#/$defs/nullableBasisPoints" },
+    "reuse_value_basis_points": { "$ref": "#/$defs/nullableBasisPoints" },
+    "frontier_closure_basis_points": { "$ref": "#/$defs/nullableBasisPoints" },
+    "verification_readiness_basis_points": { "$ref": "#/$defs/nullableBasisPoints" },
+    "uncertainty_basis_points": { "$ref": "#/$defs/basisPoints" },
+    "estimated_verifier_calls": { "type": "integer", "minimum": 0 },
+    "estimated_generated_lemmas": { "type": "integer", "minimum": 0 },
+    "estimated_wall_seconds": { "type": "integer", "minimum": 0 },
+    "estimated_human_review_minutes": { "type": "integer", "minimum": 0 },
+    "scope_status": { "enum": ["supported", "unsupported"] },
+    "privacy_status": { "enum": ["safe", "unsafe"] },
+    "evidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/digest" }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "nullableDigest": {
+      "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }]
+    },
+    "basisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "nullableBasisPoints": {
+      "oneOf": [{ "$ref": "#/$defs/basisPoints" }, { "type": "null" }]
+    },
+    "nullableText": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 8000 },
+        { "type": "null" }
+      ]
+    },
+    "textArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1000 }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "truth_release_digest",
+        "contribution_route",
+        "action",
+        "privacy_class"
+      ],
+      "properties": {
+        "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "contribution_route": { "enum": ["github-user", "anonymous-service"] },
+        "action": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "privacy_class": { "enum": ["private-research", "public-contribution"] }
+      }
+    }
+  }
+}
