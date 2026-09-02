@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "human-structure-observation.v1",
+  "title": "Explicitly saved human observation over one release-bound mathematical structure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "observation_id",
+    "observation_content"
+  ],
+  "properties": {
+    "schema": {
+      "const": "human-structure-observation.v1"
+    },
+    "observation_id": {
+      "$ref": "#/$defs/digest"
+    },
+    "observation_content": {
+      "$ref": "#/$defs/content"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gitObject": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "clusterId": {
+      "type": "string",
+      "pattern": "^cluster:sha256:[0-9a-f]{64}$"
+    },
+    "nodeIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "clusterIdArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/clusterId"
+      }
+    },
+    "selectedEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dependency_id",
+        "dependent_id"
+      ],
+      "properties": {
+        "dependency_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "dependent_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_node_ids",
+        "selected_cluster_ids",
+        "selected_edges",
+        "selected_path_ref"
+      ],
+      "properties": {
+        "selected_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "selected_cluster_ids": {
+          "$ref": "#/$defs/clusterIdArray"
+        },
+        "selected_edges": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/selectedEdge"
+          }
+        },
+        "selected_path_ref": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "gesture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_node_ids",
+        "target_node_ids",
+        "source_cluster_ids",
+        "target_cluster_ids"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "selection",
+            "compare",
+            "bring-together",
+            "cluster-peel",
+            "path-inspection",
+            "frontier-mark"
+          ]
+        },
+        "source_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "target_node_ids": {
+          "$ref": "#/$defs/nodeIdArray"
+        },
+        "source_cluster_ids": {
+          "$ref": "#/$defs/clusterIdArray"
+        },
+        "target_cluster_ids": {
+          "$ref": "#/$defs/clusterIdArray"
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topology_atlas_input_receipt_ref",
+        "truth_release_digest",
+        "certified_topology_digest",
+        "topology_atlas_digest",
+        "pages_conformation_digest",
+        "pages_research_context_digest",
+        "source_commit",
+        "source_tree",
+        "source_surface",
+        "human_actor",
+        "selection",
+        "gesture",
+        "human_note",
+        "privacy_class",
+        "explicitly_saved",
+        "created_at"
+      ],
+      "properties": {
+        "topology_atlas_input_receipt_ref": {
+          "$ref": "#/$defs/digest"
+        },
+        "truth_release_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "certified_topology_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology_atlas_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "pages_conformation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "pages_research_context_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "source_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "source_surface": {
+          "const": "trureturing-pages"
+        },
+        "human_actor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "selection": {
+          "$ref": "#/$defs/selection"
+        },
+        "gesture": {
+          "$ref": "#/$defs/gesture"
+        },
+        "human_note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "privacy_class": {
+          "enum": [
+            "private-research",
+            "team-research",
+            "public-candidate"
+          ]
+        },
+        "explicitly_saved": {
+          "const": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

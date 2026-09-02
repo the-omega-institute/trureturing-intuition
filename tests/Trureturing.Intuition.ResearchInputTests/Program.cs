@@ -7,6 +7,11 @@ var tests = new (string Name, Action Run)[]
     ("registers and replays one exact topology input", RegistersAndReplays),
     ("rejects topology digest mismatch", RejectsDigestMismatch),
     ("rejects same-release topology rebinding", RejectsSameReleaseRebinding),
+    ("registers and replays one exact topology atlas input", RegistersAtlasAndReplays),
+    ("rejects topology atlas digest mismatch", RejectsAtlasDigestMismatch),
+    ("rejects same-release topology atlas rebinding", RejectsSameReleaseAtlasRebinding),
+    ("rejects mixed topology atlas binding", RejectsMixedAtlasBinding),
+    ("rejects unknown topology atlas fields", RejectsUnknownAtlasFields),
     ("registers one human research candidate idempotently", RegistersHumanCandidate),
     ("rejects a tampered human candidate id", RejectsTamperedCandidateId),
     ("rejects unordered human candidate nodes", RejectsUnorderedCandidateNodes)
@@ -34,6 +39,11 @@ static byte[] Fixture() => File.ReadAllBytes(Path.Combine(
     "fixtures",
     "certified-topology.v1.json"));
 
+static byte[] AtlasFixture() => File.ReadAllBytes(Path.Combine(
+    AppContext.BaseDirectory,
+    "fixtures",
+    "topology-atlas.v1.json"));
+
 static string Digest(ReadOnlySpan<byte> bytes) =>
     "sha256:" + Convert.ToHexStringLower(SHA256.HashData(bytes));
 
@@ -44,6 +54,17 @@ static TopologyPublicationCoordinate Publication(byte[] bytes) => new(
     new string('1', 40),
     new string('2', 40),
     "sha256:" + new string('a', 64),
+    new string('c', 40));
+
+static TopologyAtlasPublicationCoordinate AtlasPublication(byte[] bytes) => new(
+    TopologyAtlasResearchInputSchemas.Publication,
+    "sha256:" + new string('5', 64),
+    "sha256:" + new string('6', 64),
+    Digest(bytes),
+    new string('1', 40),
+    new string('2', 40),
+    "sha256:" + new string('a', 64),
+    "sha256:" + new string('b', 64),
     new string('c', 40));
 
 static HumanResearchCandidate HumanCandidate(
@@ -147,6 +168,130 @@ static void RejectsSameReleaseRebinding()
         Publication(changed),
         changed,
         cursor));
+}
+
+static void RegistersAtlasAndReplays()
+{
+    using var temp = new TempDirectory();
+    byte[] atlas = AtlasFixture();
+    string cursor = Path.Combine(
+        temp.Path,
+        "work",
+        "topology-atlas-input-cursor.v1.json");
+
+    TopologyAtlasResearchInputRegistration first =
+        TopologyAtlasResearchInputRegistrar.Register(
+            temp.Path,
+            AtlasPublication(atlas),
+            atlas,
+            cursor);
+    TopologyAtlasResearchInputRegistration replay =
+        TopologyAtlasResearchInputRegistrar.Register(
+            temp.Path,
+            AtlasPublication(atlas),
+            atlas,
+            cursor);
+
+    Assert.True(!first.Replayed);
+    Assert.True(replay.Replayed);
+    Assert.Equal(first.ReceiptRef, replay.ReceiptRef);
+    Assert.True(File.Exists(
+        TopologyAtlasResearchInputRegistrar.AtlasBlobPath(
+            temp.Path,
+            first.AtlasRef)));
+
+    var store = new ArtifactStore(temp.Path);
+    IntuitionTopologyAtlasInputReceipt receipt =
+        store.Get<IntuitionTopologyAtlasInputReceipt>(first.ReceiptRef);
+    Assert.Equal(first.AtlasRef, receipt.AtlasRef);
+    Assert.Equal(
+        AtlasPublication(atlas).CertifiedTopologyDigest,
+        receipt.CertifiedTopologyDigest);
+
+    IntuitionTopologyAtlasInputCursor frozenCursor =
+        CanonicalJson.DeserializeCanonical<IntuitionTopologyAtlasInputCursor>(
+            File.ReadAllBytes(cursor));
+    Assert.Equal(first.ReceiptRef, frozenCursor.ReceiptRef);
+
+    TopologyAtlasReadModel model = TopologyAtlasReader.Read(
+        atlas,
+        new TopologyAtlasBinding(
+            receipt.TruthReleaseDigest,
+            receipt.CertifiedTopologyDigest,
+            receipt.CertifiedAlgorithmProfileDigest,
+            receipt.AtlasAlgorithmProfileDigest,
+            receipt.ProducerCommit));
+    Assert.Equal(3, model.Nodes.Count);
+    Assert.Equal(4, model.Clusters.Count);
+    Assert.Equal("bridge", model.GetNode("node-b").StructuralRole);
+}
+
+static void RejectsAtlasDigestMismatch()
+{
+    using var temp = new TempDirectory();
+    byte[] atlas = AtlasFixture();
+    TopologyAtlasPublicationCoordinate publication = AtlasPublication(atlas) with
+    {
+        TopologyAtlasDigest = "sha256:" + new string('f', 64)
+    };
+    Assert.Throws(() => TopologyAtlasResearchInputRegistrar.Register(
+        temp.Path,
+        publication,
+        atlas,
+        Path.Combine(temp.Path, "cursor.json")));
+}
+
+static void RejectsSameReleaseAtlasRebinding()
+{
+    using var temp = new TempDirectory();
+    byte[] atlas = AtlasFixture();
+    string cursor = Path.Combine(temp.Path, "cursor.json");
+    _ = TopologyAtlasResearchInputRegistrar.Register(
+        temp.Path,
+        AtlasPublication(atlas),
+        atlas,
+        cursor);
+
+    byte[] changed = Encoding.UTF8.GetBytes(
+        Encoding.UTF8.GetString(atlas).Replace(
+            "\"numerator\": 3, \"denominator\": 4",
+            "\"numerator\": 2, \"denominator\": 3",
+            StringComparison.Ordinal));
+    Assert.Throws(() => TopologyAtlasResearchInputRegistrar.Register(
+        temp.Path,
+        AtlasPublication(changed),
+        changed,
+        cursor));
+}
+
+static void RejectsMixedAtlasBinding()
+{
+    using var temp = new TempDirectory();
+    byte[] atlas = AtlasFixture();
+    TopologyAtlasPublicationCoordinate publication = AtlasPublication(atlas) with
+    {
+        CertifiedTopologyDigest = "sha256:" + new string('d', 64)
+    };
+    Assert.Throws(() => TopologyAtlasResearchInputRegistrar.Register(
+        temp.Path,
+        publication,
+        atlas,
+        Path.Combine(temp.Path, "cursor.json")));
+}
+
+static void RejectsUnknownAtlasFields()
+{
+    using var temp = new TempDirectory();
+    byte[] atlas = Encoding.UTF8.GetBytes(
+        Encoding.UTF8.GetString(AtlasFixture()).Replace(
+            "\"schema_version\": \"topology-atlas.v1\",",
+            "\"schema_version\": \"topology-atlas.v1\", \"unknown\": true,",
+            StringComparison.Ordinal));
+    Assert.Throws(() => TopologyAtlasResearchInputRegistrar.Register(
+        temp.Path,
+        AtlasPublication(atlas),
+        atlas,
+        Path.Combine(temp.Path, "cursor.json")));
 }
 
 static void RegistersHumanCandidate()
