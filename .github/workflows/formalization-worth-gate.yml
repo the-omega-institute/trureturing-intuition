@@ -1,0 +1,56 @@
+name: formalization-worth-gate
+
+on:
+  pull_request:
+    paths:
+      - src/Trureturing.Intuition.Core/FormalizationWorthGate.cs
+      - tests/Trureturing.Intuition.FormalizationGateTests/**
+      - contracts/formalization-gate-policy.v1.schema.json
+      - contracts/formalization-worth-evidence.v1.schema.json
+      - contracts/formalization-gate-assessment.v1.schema.json
+      - config/formalization-gate-policy.v1.json
+      - Trureturing.Intuition.slnx
+      - .github/workflows/formalization-worth-gate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build the complete solution
+        run: dotnet build Trureturing.Intuition.slnx -c Release --warnaserror
+
+      - name: Run formalization gate decisions
+        run: >-
+          dotnet run
+          --project tests/Trureturing.Intuition.FormalizationGateTests
+          -c Release
+          --no-build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Parse gate contracts and policy
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          paths = [
+              Path('contracts/formalization-gate-policy.v1.schema.json'),
+              Path('contracts/formalization-worth-evidence.v1.schema.json'),
+              Path('contracts/formalization-gate-assessment.v1.schema.json'),
+              Path('config/formalization-gate-policy.v1.json'),
+          ]
+          for path in paths:
+              json.loads(path.read_text(encoding='utf-8'))
+          PY
