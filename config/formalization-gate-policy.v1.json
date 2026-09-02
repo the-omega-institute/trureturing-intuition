@@ -1,0 +1,19 @@
+{
+  "schema": "formalization-gate-policy.v1",
+  "policy_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "github_user_enabled": true,
+  "anonymous_service_enabled": true,
+  "require_duplicate_search": true,
+  "require_verification_plan": true,
+  "require_falsifier": true,
+  "require_counterfactual_for_bridge": true,
+  "maximum_uncertainty_basis_points": 2500,
+  "budget": {
+    "maximum_verifier_calls": 100,
+    "maximum_generated_lemmas": 20,
+    "maximum_wall_seconds": 3600,
+    "maximum_human_review_minutes": 120
+  },
+  "accepted_novelty_statuses": ["demonstrated", "plausible"],
+  "accepted_structural_leverage_statuses": ["demonstrated", "plausible"]
+}

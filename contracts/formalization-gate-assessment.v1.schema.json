@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formalization-gate-assessment.v1",
+  "title": "Deterministic formalization gate assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "assessment_id", "assessment_content"],
+  "properties": {
+    "schema": { "const": "formalization-gate-assessment.v1" },
+    "assessment_id": { "$ref": "#/$defs/digest" },
+    "assessment_content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "request_id",
+        "evidence_id",
+        "truth_release_digest",
+        "contribution_route",
+        "decision",
+        "formalization_allowed",
+        "value_vector",
+        "reasons",
+        "missing_inputs",
+        "duplicate_matches",
+        "allowed_contribution_routes",
+        "evidence_refs",
+        "evaluated_at",
+        "expires_at"
+      ],
+      "properties": {
+        "policy_id": { "$ref": "#/$defs/digest" },
+        "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "evidence_id": { "$ref": "#/$defs/digest" },
+        "truth_release_digest": { "$ref": "#/$defs/digest" },
+        "contribution_route": { "enum": ["github-user", "anonymous-service"] },
+        "decision": { "enum": ["accept", "needs-clarification", "defer", "duplicate", "reject"] },
+        "formalization_allowed": { "type": "boolean" },
+        "value_vector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "novelty",
+            "structural_leverage",
+            "reuse_value",
+            "frontier_closure",
+            "verification_readiness",
+            "uncertainty"
+          ],
+          "properties": {
+            "novelty": { "$ref": "#/$defs/nullableBasisPoints" },
+            "structural_leverage": { "$ref": "#/$defs/nullableBasisPoints" },
+            "reuse_value": { "$ref": "#/$defs/nullableBasisPoints" },
+            "frontier_closure": { "$ref": "#/$defs/nullableBasisPoints" },
+            "verification_readiness": { "$ref": "#/$defs/nullableBasisPoints" },
+            "uncertainty": { "$ref": "#/$defs/basisPoints" }
+          }
+        },
+        "reasons": { "$ref": "#/$defs/textArray" },
+        "missing_inputs": { "$ref": "#/$defs/textArray" },
+        "duplicate_matches": { "$ref": "#/$defs/textArray" },
+        "allowed_contribution_routes": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 1,
+          "items": { "enum": ["github-user", "anonymous-service"] }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/digest" }
+        },
+        "evaluated_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "basisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "nullableBasisPoints": {
+      "oneOf": [{ "$ref": "#/$defs/basisPoints" }, { "type": "null" }]
+    },
+    "textArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1000 }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formalization-gate-policy.v1",
+  "title": "Deterministic formalization admission policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "policy_id",
+    "github_user_enabled",
+    "anonymous_service_enabled",
+    "require_duplicate_search",
+    "require_verification_plan",
+    "require_falsifier",
+    "require_counterfactual_for_bridge",
+    "maximum_uncertainty_basis_points",
+    "budget",
+    "accepted_novelty_statuses",
+    "accepted_structural_leverage_statuses"
+  ],
+  "properties": {
+    "schema": { "const": "formalization-gate-policy.v1" },
+    "policy_id": { "$ref": "#/$defs/digest" },
+    "github_user_enabled": { "type": "boolean" },
+    "anonymous_service_enabled": { "type": "boolean" },
+    "require_duplicate_search": { "type": "boolean" },
+    "require_verification_plan": { "type": "boolean" },
+    "require_falsifier": { "type": "boolean" },
+    "require_counterfactual_for_bridge": { "type": "boolean" },
+    "maximum_uncertainty_basis_points": { "$ref": "#/$defs/basisPoints" },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_verifier_calls",
+        "maximum_generated_lemmas",
+        "maximum_wall_seconds",
+        "maximum_human_review_minutes"
+      ],
+      "properties": {
+        "maximum_verifier_calls": { "type": "integer", "minimum": 0 },
+        "maximum_generated_lemmas": { "type": "integer", "minimum": 0 },
+        "maximum_wall_seconds": { "type": "integer", "minimum": 0 },
+        "maximum_human_review_minutes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "accepted_novelty_statuses": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["demonstrated", "plausible", "open", "duplicate"] }
+    },
+    "accepted_structural_leverage_statuses": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["demonstrated", "plausible", "open"] }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "basisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 }
+  }
+}

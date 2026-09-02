@@ -4,4 +4,5 @@
   <Project Path="tests/Trureturing.Intuition.Tests/Trureturing.Intuition.Tests.csproj" />
   <Project Path="tests/Trureturing.Intuition.ArchitectureTests/Trureturing.Intuition.ArchitectureTests.csproj" />
   <Project Path="tests/Trureturing.Intuition.HumanObservationTests/Trureturing.Intuition.HumanObservationTests.csproj" />
+  <Project Path="tests/Trureturing.Intuition.FormalizationGateTests/Trureturing.Intuition.FormalizationGateTests.csproj" />
 </Solution>
